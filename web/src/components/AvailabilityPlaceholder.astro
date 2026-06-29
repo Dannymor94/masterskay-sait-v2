@@ -1,64 +1,369 @@
 ---
 /**
  * AvailabilityPlaceholder.astro — «Свободные слоты» (#dostupnost).
- * Данных O2 (реальная занятость) НЕТ → компактный текстовый плейсхолдер:
- * два абзаца + ghost-кнопка к форме. Без таблиц, без точек, без пустых сеток.
  *
- * Когда появятся данные O2 — заменить этот компонент на полноценную сетку
- * занятости (дни × время суток, статусы свободно/занято).
+ * SSR: читает published слоты из БД и рисует мини-календарь недели (пн–вс × утро/день/вечер).
+ * Цветовая индикация — только var()-токены:
+ *   свободно   → фон var(--surface) + точка var(--accent-fill)
+ *   занято     → приглушённый (arenda-слот, is_published=1)
+ *   под запрос → контур var(--btn-bg) (own-слот — занятие Мастерской)
  *
- * Тексты — дословно из arenda.md (секция dostupnost).
+ * Без JS: статичный CSS-grid SSR-рендер.
+ * С JS: hover-tooltip «занято HH:MM–HH:MM» через data-tip.
+ *
+ * Если слотов нет вовсе — fallback: текстовый блок.
  */
 import Button from './Button.astro';
+import { getDb } from '../server/db.ts';
+
+type SlotRow = {
+  weekday: number;
+  time_start: string;
+  time_end: string;
+  kind: string;
+  title: string | null;
+};
+
+let rows: SlotRow[] = [];
+try {
+  const db = getDb();
+  rows = db
+    .prepare(
+      'SELECT weekday, time_start, time_end, kind, title FROM slot WHERE is_published = 1 ORDER BY weekday, time_start',
+    )
+    .all() as SlotRow[];
+} catch {
+  // БД недоступна → показываем fallback текст
+}
+
+const hasSlots = rows.length > 0;
+
+type Period = 'morning' | 'day' | 'evening';
+type Status = 'free' | 'busy' | 'request';
+
+const PERIODS: Period[] = ['morning', 'day', 'evening'];
+const PERIOD_LABELS: Record<Period, string> = {
+  morning: 'Утро',
+  day: 'День',
+  evening: 'Вечер',
+};
+const DAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+function getPeriod(t: string): Period {
+  if (t < '12:00') return 'morning';
+  if (t < '17:00') return 'day';
+  return 'evening';
+}
+
+type Cell = { status: Status; tip: string };
+
+// matrix[period][weekday 0..6]
+const matrix: Record<Period, Cell[]> = {
+  morning: Array.from({ length: 7 }, () => ({ status: 'free' as Status, tip: '' })),
+  day: Array.from({ length: 7 }, () => ({ status: 'free' as Status, tip: '' })),
+  evening: Array.from({ length: 7 }, () => ({ status: 'free' as Status, tip: '' })),
+};
+
+for (const row of rows) {
+  const period = getPeriod(row.time_start);
+  const idx = row.weekday - 1;
+  if (idx < 0 || idx > 6) continue;
+  const cell = matrix[period][idx];
+  const status: Status = row.kind === 'arenda' ? 'busy' : 'request';
+  // busy > request > free
+  if (cell.status === 'free' || (cell.status === 'request' && status === 'busy')) {
+    cell.status = status;
+    cell.tip =
+      status === 'busy'
+        ? `занято ${row.time_start}–${row.time_end}`
+        : `под запрос ${row.time_start}–${row.time_end}`;
+  }
+}
 ---
 
 <section id="dostupnost" class="avail" aria-labelledby="avail-title">
   <div class="container">
-    <div class="avail__card">
+    <header class="avail__head">
       <p class="overline">Доступность</p>
       <h2 id="avail-title" class="avail__title">Свободные слоты</h2>
-      <p class="avail__text">
-        Свободные регулярные окна мы подбираем под вас — укажите в заявке
-        удобные дни и время, посмотрим что есть и предложим вариант.
-        Слотов конечное число, поэтому удобные вечера разбирают заранее.
-      </p>
-      <p class="avail__action">
-        <Button variant="secondary" href="#zayavka">Написать о слоте</Button>
-      </p>
-    </div>
+    </header>
+
+    {
+      hasSlots ? (
+        <div class="avail__cal-wrap">
+          <div class="avail__cal" role="table" aria-label="Доступность по дням и времени">
+            {/* Заголовок: пустая ячейка + 7 дней */}
+            <div class="avail__row avail__row--head" role="row">
+              <div class="avail__period-label" role="columnheader" aria-label="Время дня" />
+              {DAY_LABELS.map((d) => (
+                <div class="avail__day-label" role="columnheader">
+                  {d}
+                </div>
+              ))}
+            </div>
+            {/* 3 строки: Утро / День / Вечер */}
+            {PERIODS.map((period) => (
+              <div class="avail__row" role="row">
+                <div class="avail__period-label" role="rowheader">
+                  {PERIOD_LABELS[period]}
+                </div>
+                {matrix[period].map((cell, i) => (
+                  <div
+                    class={`avail__cell avail__cell--${cell.status}`}
+                    role="cell"
+                    aria-label={`${DAY_LABELS[i]}, ${PERIOD_LABELS[period]}: ${cell.status === 'free' ? 'свободно' : cell.status === 'busy' ? 'занято' : 'под запрос'}`}
+                    data-tip={cell.tip || undefined}
+                  >
+                    <span class="avail__dot" aria-hidden="true" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Легенда */}
+          <ul class="avail__legend" aria-label="Условные обозначения">
+            <li>
+              <span class="avail__dot avail__dot--free" aria-hidden="true" />
+              свободно
+            </li>
+            <li>
+              <span class="avail__dot avail__dot--busy" aria-hidden="true" />
+              занято
+            </li>
+            <li>
+              <span class="avail__dot avail__dot--request" aria-hidden="true" />
+              под запрос
+            </li>
+          </ul>
+
+          <p class="avail__action">
+            <Button variant="primary" href="#zayavka">Подобрать слот</Button>
+          </p>
+        </div>
+      ) : (
+        /* Fallback: нет данных → текстовый блок */
+        <div class="avail__card">
+          <p class="avail__text">
+            Свободные регулярные окна мы подбираем под вас — укажите в заявке
+            удобные дни и время, посмотрим что есть и предложим вариант.
+            Слотов конечное число, поэтому удобные вечера разбирают заранее.
+          </p>
+          <p class="avail__action">
+            <Button variant="primary" href="#zayavka">Подобрать слот</Button>
+          </p>
+        </div>
+      )
+    }
   </div>
 </section>
+
+<script>
+  {/* Hover-tooltip: показывает data-tip при наведении */}
+  (function () {
+    const tip = document.createElement('div');
+    tip.className = 'avail-tooltip';
+    tip.setAttribute('role', 'tooltip');
+    document.body.appendChild(tip);
+
+    let visible = false;
+
+    document.querySelectorAll<HTMLElement>('.avail__cell[data-tip]').forEach((cell) => {
+      cell.addEventListener('mouseenter', () => {
+        const text = cell.dataset.tip;
+        if (!text) return;
+        tip.textContent = text;
+        tip.classList.add('avail-tooltip--visible');
+        visible = true;
+      });
+      cell.addEventListener('mousemove', (e) => {
+        if (!visible) return;
+        tip.style.left = e.clientX + 12 + 'px';
+        tip.style.top = e.clientY - 8 + 'px';
+      });
+      cell.addEventListener('mouseleave', () => {
+        tip.classList.remove('avail-tooltip--visible');
+        visible = false;
+      });
+    });
+  })();
+</script>
 
 <style>
   .avail {
     padding-block: var(--space-5);
   }
+  .avail__head {
+    margin-bottom: var(--space-3);
+  }
+  .avail__title {
+    margin-top: var(--space-1);
+    margin-bottom: 0;
+  }
 
+  /* ---- Мини-календарь ---- */
+  .avail__cal-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .avail__cal {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .avail__row {
+    display: grid;
+    grid-template-columns: 3.5rem repeat(7, 1fr);
+    gap: 3px;
+    margin-bottom: 3px;
+    min-width: 280px;
+  }
+
+  .avail__period-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-family: var(--font-accent);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .avail__day-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-family: var(--font-accent);
+    letter-spacing: 0.04em;
+  }
+
+  .avail__cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    min-height: 2.2rem;
+    transition: opacity 0.1s ease;
+  }
+  .avail__cell[data-tip] {
+    cursor: pointer;
+  }
+
+  /* Свободно: кремовый фон + оранжевая точка */
+  .avail__cell--free {
+    background: var(--surface);
+    border: 1px solid transparent;
+  }
+  .avail__cell--free .avail__dot {
+    background: var(--accent-fill);
+  }
+
+  /* Занято: приглушённый фон, серая точка */
+  .avail__cell--busy {
+    background: color-mix(in srgb, var(--text-muted) 14%, var(--bg));
+    border: 1px solid transparent;
+    opacity: 0.7;
+  }
+  .avail__cell--busy .avail__dot {
+    background: var(--text-muted);
+  }
+
+  /* Под запрос: прозрачный фон, оранжевый контур */
+  .avail__cell--request {
+    background: var(--bg);
+    border: 1.5px solid var(--btn-bg);
+  }
+  .avail__cell--request .avail__dot {
+    background: transparent;
+    border: 1.5px solid var(--btn-bg);
+  }
+
+  .avail__dot {
+    display: block;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Легенда */
+  .avail__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .avail__legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .avail__legend .avail__dot {
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+  .avail__legend .avail__dot--free {
+    background: var(--accent-fill);
+  }
+  .avail__legend .avail__dot--busy {
+    background: var(--text-muted);
+  }
+  .avail__legend .avail__dot--request {
+    background: transparent;
+    border: 1.5px solid var(--btn-bg);
+  }
+
+  .avail__action {
+    margin: 0;
+  }
+
+  /* Fallback-карточка */
   .avail__card {
     background: var(--surface);
     border-radius: var(--radius-lg);
-    padding: var(--space-4) var(--space-4);
+    padding: var(--space-4);
     max-width: 56ch;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
   }
-
-  .avail__title {
-    margin-top: var(--space-1);
-    margin-bottom: var(--space-2);
-  }
-
   .avail__text {
     margin: 0;
     color: var(--text-muted);
     line-height: var(--leading-body);
   }
+</style>
 
-  .avail__action {
-    margin: var(--space-3) 0 0;
+<style is:global>
+  /* Tooltip — глобальный, добавляется в body через JS */
+  .avail-tooltip {
+    position: fixed;
+    background: var(--text);
+    color: var(--btn-text);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 300;
+    white-space: nowrap;
+    transition: opacity 0.1s ease;
   }
-
-  @media (min-width: 40rem) {
-    .avail__card {
-      padding: var(--space-4) var(--space-5);
-    }
+  .avail-tooltip--visible {
+    opacity: 1;
   }
 </style>

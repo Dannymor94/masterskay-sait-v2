@@ -26,7 +26,7 @@ import HallsSection from '../components/HallsSection.astro';
 import WhySection from '../components/WhySection.astro';
 import AvailabilityPlaceholder from '../components/AvailabilityPlaceholder.astro';
 import ResidentsPlaceholder from '../components/ResidentsPlaceholder.astro';
-import ArendaForm from '../components/ArendaForm.astro';
+import ArendaModal from '../components/ArendaModal.astro';
 import Faq from '../components/Faq.astro';
 import CtaBand from '../components/CtaBand.astro';
 import Metrika from '../components/Metrika.astro';
@@ -76,7 +76,7 @@ if (flash?.value) {
   <WhySection />
   <AvailabilityPlaceholder />
   <ResidentsPlaceholder />
-  <ArendaForm
+  <ArendaModal
     idempotencyKey={idempotencyKey}
     formRenderedAt={formRenderedAt}
     ctaOrigin={ctaOrigin}

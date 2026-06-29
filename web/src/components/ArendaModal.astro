@@ -1,0 +1,193 @@
+---
+/**
+ * ArendaModal.astro — форма заявки в модальном окне (#zayavka).
+ *
+ * Без JS: CSS :target. Когда URL содержит #zayavka — display:flex → модалка видна.
+ * Закрытие без JS: <a href="#">×</a> убирает :target, backdrop-ссылка — тоже.
+ * С JS: плавное появление, блок прокрутки фона, фокус-ловушка, закрытие по Esc.
+ *
+ * Форма (ArendaForm) — нативный POST, без изменений. idempotency_key / flash / ошибки
+ * приходят пропсами из /arenda.astro (SSR). При ошибке валидации эндпоинт редиректит
+ * на /arenda#zayavka → :target срабатывает, модалка открывается с ошибками.
+ */
+import ArendaForm from './ArendaForm.astro';
+
+interface Props {
+  idempotencyKey: string;
+  formRenderedAt: string;
+  ctaOrigin?: string;
+  preselectHall?: string;
+  values?: Record<string, string>;
+  errors?: Record<string, string>;
+}
+
+const props = Astro.props;
+---
+
+<div
+  id="zayavka"
+  class="modal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="apply-title"
+>
+  <!-- Фон-ссылка: клик вне диалога → href="#" снимает :target (закрывает без JS) -->
+  <a href="#" class="modal__backdrop" aria-label="Закрыть" tabindex="-1"></a>
+  <div class="modal__dialog">
+    <a href="#" class="modal__close" aria-label="Закрыть окно">
+      <span aria-hidden="true">&times;</span>
+    </a>
+    <ArendaForm {...props} />
+  </div>
+</div>
+
+<style>
+  /* Скрыта по умолчанию; :target = якорь #zayavka в URL → видна */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--space-3);
+    overflow-y: auto;
+  }
+  .modal:target {
+    display: flex;
+  }
+
+  .modal__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: -1;
+    display: block;
+  }
+  .modal__backdrop:focus-visible {
+    outline: none;
+  }
+
+  .modal__dialog {
+    background: var(--bg);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 600px;
+    position: relative;
+    margin: auto;
+    padding-top: var(--space-2);
+    /* ArendaForm имеет свои внутренние отступы */
+  }
+
+  .modal__close {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    width: 2.4rem;
+    height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    z-index: 1;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .modal__close:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .modal__close:focus-visible {
+    outline: 2px solid var(--color-orange-deep);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 40rem) {
+    .modal {
+      padding: var(--space-2);
+      align-items: flex-end;
+    }
+    .modal__dialog {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+  }
+</style>
+
+<script>
+  // JS-улучшение: Esc-закрытие, блок прокрутки фона, фокус-ловушка, плавный open
+  (function () {
+    const modal = document.getElementById('zayavka') as HTMLElement;
+    if (!modal) return;
+
+    function isOpen() {
+      return window.location.hash === '#zayavka';
+    }
+
+    function lockScroll() {
+      document.body.style.overflow = 'hidden';
+    }
+    function unlockScroll() {
+      document.body.style.overflow = '';
+    }
+
+    let lastFocused: HTMLElement | null = null;
+
+    function openModal() {
+      lockScroll();
+      lastFocused = document.activeElement as HTMLElement | null;
+      // фокус на первое интерактивное поле
+      setTimeout(() => {
+        const first = modal.querySelector<HTMLElement>(
+          'input:not([tabindex="-1"]), select, textarea, button'
+        );
+        if (first) first.focus();
+      }, 50);
+    }
+
+    function closeModal() {
+      unlockScroll();
+      if (lastFocused) lastFocused.focus();
+    }
+
+    window.addEventListener('hashchange', () => {
+      if (isOpen()) openModal();
+      else closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen()) {
+        history.pushState(null, '', window.location.pathname + window.location.search);
+        closeModal();
+      }
+    });
+
+    // фокус-ловушка: Tab/Shift+Tab не выходит за пределы модалки
+    modal.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab' || !isOpen()) return;
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([tabindex="-1"]), select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    // инициализация при загрузке (если страница открыта с #zayavka)
+    if (isOpen()) openModal();
+  })();
+</script>
