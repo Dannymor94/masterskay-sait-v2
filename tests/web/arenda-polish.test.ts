@@ -19,16 +19,10 @@ const component = (f: string) => readFileSync(resolve(WEB, 'components', f), 'ut
 
 // ─── 1. WhySection ──────────────────────────────────────────────────────────
 
-describe('WhySection — CTA primary-кнопка', () => {
-  it('Button в блоке why__cta имеет variant="primary" (не soft)', () => {
+describe('WhySection — поддерживающий CTA', () => {
+  it('Button в блоке why__cta имеет variant="soft" (ghost-ссылка с подчёркиванием)', () => {
     const src = component('WhySection.astro');
-    // ищем строку с Button и текстом CTA
-    expect(src).toMatch(/variant="primary"[^>]*>.*Оставить заявку|Оставить заявку.*variant="primary"/s);
-  });
-
-  it('why__cta центрирован (text-align: center)', () => {
-    const src = component('WhySection.astro');
-    expect(src).toMatch(/\.why__cta\s*\{[^}]*text-align\s*:\s*center/s);
+    expect(src).toMatch(/variant="soft"[^>]*>.*Оставить заявку|Оставить заявку.*variant="soft"/s);
   });
 
   it('CTA ведёт на #zayavka', () => {
