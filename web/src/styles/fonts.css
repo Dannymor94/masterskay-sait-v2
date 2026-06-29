@@ -1,60 +1,66 @@
-/* Self-hosted шрифты — статичные TTF, кириллица, БЕЗ Google CDN (T0-1).
- * Файлы: web/public/fonts/*.ttf — инстансы из вариативных OFL-исходников
- * (Raleway/Montserrat/Open Sans), субсет латиница+кириллица (+ № ₽ « » — ).
- * Это ручная привязка @font-face (не из tokens.json): families/веса берём
- * из design/tokens.json (typography.fonts / typography.scale). */
+/* Self-hosted fonts — woff2 (primary) + ttf (fallback), no Google CDN (T0-1).
+ * Files: web/public/fonts/*.{woff2,ttf} — Raleway/Montserrat/Open Sans subsets
+ * (Latin + Cyrillic + № ₽ « » —), OFL licence.
+ * Families/weights come from design/tokens.json (typography.fonts / typography.scale). */
 
-/* --- Raleway (заголовки) --- */
+/* --- Raleway (headings) --- */
 @font-face {
   font-family: 'Raleway';
   font-style: normal;
   font-weight: 200;
   font-display: swap;
-  src: url('/fonts/Raleway-ExtraLight.ttf') format('truetype');
+  src: url('/fonts/Raleway-ExtraLight.woff2') format('woff2'),
+       url('/fonts/Raleway-ExtraLight.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Raleway';
   font-style: normal;
   font-weight: 300;
   font-display: swap;
-  src: url('/fonts/Raleway-Light.ttf') format('truetype');
+  src: url('/fonts/Raleway-Light.woff2') format('woff2'),
+       url('/fonts/Raleway-Light.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Raleway';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/Raleway-SemiBold.ttf') format('truetype');
+  src: url('/fonts/Raleway-SemiBold.woff2') format('woff2'),
+       url('/fonts/Raleway-SemiBold.ttf') format('truetype');
 }
 
-/* --- Montserrat (overline-акцент) --- */
+/* --- Montserrat (overline accent) --- */
 @font-face {
   font-family: 'Montserrat';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/Montserrat-SemiBold.ttf') format('truetype');
+  src: url('/fonts/Montserrat-SemiBold.woff2') format('woff2'),
+       url('/fonts/Montserrat-SemiBold.ttf') format('truetype');
 }
 
-/* --- Open Sans (основной текст) --- */
+/* --- Open Sans (body text) --- */
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/OpenSans-Regular.ttf') format('truetype');
+  src: url('/fonts/OpenSans-Regular.woff2') format('woff2'),
+       url('/fonts/OpenSans-Regular.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/OpenSans-SemiBold.ttf') format('truetype');
+  src: url('/fonts/OpenSans-SemiBold.woff2') format('woff2'),
+       url('/fonts/OpenSans-SemiBold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Open Sans';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/OpenSans-Bold.ttf') format('truetype');
+  src: url('/fonts/OpenSans-Bold.woff2') format('woff2'),
+       url('/fonts/OpenSans-Bold.ttf') format('truetype');
 }

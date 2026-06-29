@@ -20,6 +20,7 @@
 import type { APIContext } from 'astro';
 import { registerEventLead, validateEventLead, type EventFields } from '../../../server/leads.ts';
 import { getEvent } from '../../../server/events.ts';
+import { logError } from '../../../server/logger.ts';
 
 export const prerender = false;
 
@@ -89,7 +90,13 @@ export async function POST({ request, redirect, cookies }: APIContext): Promise<
   }
 
   // 4. Успех: транзакционная вставка лида + резерв мест.
-  const reg = registerEventLead(fields as EventFields);
+  let reg: ReturnType<typeof registerEventLead>;
+  try {
+    reg = registerEventLead(fields as EventFields);
+  } catch (err) {
+    logError('api/leads/event', err);
+    return new Response('Internal error', { status: 500 });
+  }
   if (!reg.ok) {
     // Единственная не-структурная причина отказа — нехватка мест (capacity достигнута).
     const msg =

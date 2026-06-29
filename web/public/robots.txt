@@ -1,0 +1,11 @@
+# Тестовый контур — закрыт от индексации.
+# Перед переводом на прод: заменить на продовую версию (см. ниже).
+User-agent: *
+Disallow: /
+
+# Прод-версия (раскомментировать при деплое на основной домен):
+# User-agent: *
+# Allow: /
+# Disallow: /admin/
+# Disallow: /api/
+# Sitemap: https://yoga-rostov-mst.ru/sitemap.xml

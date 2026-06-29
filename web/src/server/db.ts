@@ -20,6 +20,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve, isAbsolute } from 'node:path';
+import { logError } from './logger.ts';
 
 export type Db = Database.Database;
 
@@ -164,22 +165,27 @@ export function getDb(): Db {
   const path = resolveDbPath();
   if (cachedDb && cachedPath === path) return cachedDb;
 
-  if (path !== ':memory:') {
-    mkdirSync(dirname(path), { recursive: true });
+  try {
+    if (path !== ':memory:') {
+      mkdirSync(dirname(path), { recursive: true });
+    }
+    const db = new Database(path);
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+
+    // Идемпотентная инициализация схемы из встроенного DDL (LEADS + M2).
+    db.exec(SCHEMA_DDL);
+    db.exec(SCHEMA_DDL_M2);
+    // Миграции «по месту» для СУЩЕСТВУЮЩИХ БД, где CREATE TABLE IF NOT EXISTS уже
+    // не выполнится (таблица есть, но без новых столбцов). На свежей БД эти ALTER —
+    // no-op (столбец уже создан DDL выше → ловим ошибку «duplicate column» и пропускаем).
+    applyColumnMigrations(db);
+
+    cachedDb = db;
+    cachedPath = path;
+    return db;
+  } catch (err) {
+    logError('db/getDb', err, { dbPath: path });
+    throw err;
   }
-  const db = new Database(path);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-
-  // Идемпотентная инициализация схемы из встроенного DDL (LEADS + M2).
-  db.exec(SCHEMA_DDL);
-  db.exec(SCHEMA_DDL_M2);
-  // Миграции «по месту» для СУЩЕСТВУЮЩИХ БД, где CREATE TABLE IF NOT EXISTS уже
-  // не выполнится (таблица есть, но без новых столбцов). На свежей БД эти ALTER —
-  // no-op (столбец уже создан DDL выше → ловим ошибку «duplicate column» и пропускаем).
-  applyColumnMigrations(db);
-
-  cachedDb = db;
-  cachedPath = path;
-  return db;
 }

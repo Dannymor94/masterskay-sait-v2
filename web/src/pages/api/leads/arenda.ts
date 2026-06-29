@@ -16,6 +16,7 @@
  */
 import type { APIContext } from 'astro';
 import { insertArendaLead, validateArenda, type ArendaFields } from '../../../server/leads.ts';
+import { logError } from '../../../server/logger.ts';
 
 export const prerender = false;
 
@@ -82,6 +83,11 @@ export async function POST({ request, redirect, cookies }: APIContext): Promise<
   }
 
   // 4. Успех: вставка с дедупом по idempotency_key (повтор — noop, ответ всё равно успешный).
-  insertArendaLead(fields as ArendaFields);
+  try {
+    insertArendaLead(fields as ArendaFields);
+  } catch (err) {
+    logError('api/leads/arenda', err);
+    return new Response('Internal error', { status: 500 });
+  }
   return redirect(SPASIBO, 303);
 }

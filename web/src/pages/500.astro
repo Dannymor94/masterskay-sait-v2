@@ -1,0 +1,54 @@
+---
+/**
+ * 500.astro — brand-styled server error page (Astro 4 SSR error fallback).
+ * Static: prerendered so it can be served even when SSR is broken.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Button from '../components/Button.astro';
+
+export const prerender = true;
+---
+
+<BaseLayout title="Ошибка сервера — «Мастерская»">
+  <section class="error-page container">
+    <p class="overline">Ошибка 500</p>
+    <h1 class="error-page__title">Что-то пошло не так</h1>
+    <p class="error-page__text">
+      Произошла техническая ошибка. Мы уже знаем о проблеме.
+      Попробуйте вернуться через несколько минут.
+    </p>
+    <div class="error-page__actions">
+      <Button variant="primary" href="/">На главную</Button>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .error-page {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-block: var(--space-6);
+    gap: var(--space-2);
+  }
+
+  .error-page__title {
+    font-family: var(--font-headings);
+    font-size: var(--text-h1);
+    font-weight: var(--weight-h1);
+    color: var(--heading);
+    margin: 0;
+  }
+
+  .error-page__text {
+    color: var(--text-muted);
+    font-size: var(--text-lead);
+    line-height: var(--leading-lead);
+    max-width: 52ch;
+    margin: 0;
+  }
+
+  .error-page__actions {
+    margin-top: var(--space-3);
+  }
+</style>

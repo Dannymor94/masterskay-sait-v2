@@ -17,6 +17,7 @@
  */
 import type { APIContext } from 'astro';
 import { insertVisitLead, validateVisit, type VisitFields } from '../../../server/leads.ts';
+import { logError } from '../../../server/logger.ts';
 
 export const prerender = false;
 
@@ -73,6 +74,11 @@ export async function POST({ request, redirect, cookies }: APIContext): Promise<
   }
 
   // 4. Успех: вставка с дедупом по idempotency_key (повтор — noop).
-  insertVisitLead(fields as VisitFields);
+  try {
+    insertVisitLead(fields as VisitFields);
+  } catch (err) {
+    logError('api/leads/visit', err);
+    return new Response('Internal error', { status: 500 });
+  }
   return redirect(SPASIBO, 303);
 }

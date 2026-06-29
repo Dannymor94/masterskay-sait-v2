@@ -59,9 +59,11 @@ const classes = ['btn', `btn--${variant}`, className].filter(Boolean).join(' ');
     border-radius: var(--radius-md);
     padding: 0.85rem 1.6rem;
     transition:
-      background-color 0.18s ease,
-      color 0.18s ease,
-      border-color 0.18s ease;
+      background-color 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
   }
 
   /* Первичный: заливка orange-deep + белый текст (AA на orange-deep). */
@@ -74,6 +76,12 @@ const classes = ['btn', `btn--${variant}`, className].filter(Boolean).join(' ');
     background: var(--btn-bg-hover);
     border-color: var(--btn-bg-hover);
     color: var(--btn-text);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .btn--primary:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   /* Вторичный (контекстный): контур, текст orange-deep (AA крупный/полужирный). */
@@ -83,9 +91,15 @@ const classes = ['btn', `btn--${variant}`, className].filter(Boolean).join(' ');
     border-color: var(--btn-bg);
   }
   .btn--secondary:hover {
-    background: var(--btn-bg);
+    background: var(--color-orange-deep);
     color: var(--btn-text);
-    border-color: var(--btn-bg);
+    border-color: var(--color-orange-deep);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .btn--secondary:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   /* Мягкий (поддерживающий): текстовая ссылка с подчёркиванием. */
@@ -100,6 +114,9 @@ const classes = ['btn', `btn--${variant}`, className].filter(Boolean).join(' ');
   }
   .btn--soft:hover {
     color: var(--btn-bg-hover);
+  }
+  .btn--soft:active {
+    transform: translateY(0);
   }
 
   @media (max-width: 30rem) {

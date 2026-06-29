@@ -67,10 +67,22 @@ p {
 
 a {
   color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: transparent;
   text-underline-offset: 0.18em;
+  transition: text-decoration-color 0.15s ease, color 0.15s ease;
 }
 a:hover {
   color: var(--btn-bg-hover);
+  text-decoration-color: currentColor;
+}
+
+/* Navigation links: no underline by default, underline on hover */
+nav a {
+  text-decoration: none;
+}
+nav a:hover {
+  text-decoration: underline;
 }
 
 img,
@@ -81,11 +93,14 @@ svg {
   display: block;
 }
 
-/* Фокус — видимый, на акцент-цвете (доступность, цель WCAG AA) */
+/* Focus — visible keyboard ring (WCAG 2.4.7). Mouse clicks suppress outline. */
 :focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  outline: 2px solid var(--color-orange-deep);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Утилиты */
@@ -125,6 +140,25 @@ svg {
   font-weight: var(--weight-lead, 300);
   color: var(--text-muted);
   max-width: 52ch;
+}
+
+/* Form field interactions */
+input,
+select,
+textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--color-orange);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-orange-deep);
+  box-shadow: 0 0 0 3px rgba(211, 84, 0, 0.15);
+  outline: none; /* replaced by custom shadow */
 }
 
 @media (prefers-reduced-motion: reduce) {

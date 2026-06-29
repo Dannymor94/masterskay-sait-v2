@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ЧЕРНОВИК — сгенерирован для тестового контура. Публикуется при переводе на прод. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://yoga-rostov-mst.ru/</loc><priority>1.0</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/arenda</loc><priority>0.9</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/raspisanie</loc><priority>0.8</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/napravleniya</loc><priority>0.7</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/praktiki</loc><priority>0.7</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/chaynaya</loc><priority>0.6</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/tury</loc><priority>0.6</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/psiholog</loc><priority>0.6</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/sobytiya</loc><priority>0.7</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/zapis</loc><priority>0.5</priority></url>
+  <url><loc>https://yoga-rostov-mst.ru/privacy</loc><priority>0.3</priority></url>
+</urlset>

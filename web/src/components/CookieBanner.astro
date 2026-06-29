@@ -41,6 +41,20 @@ const COUNTER_ID = 91052806;
     var banner = document.getElementById('cookie-banner');
     if (!banner) return;
 
+    // Compensate fixed banner height so content is not hidden beneath it.
+    function applyBodyPadding() {
+      document.body.style.paddingBottom = banner.offsetHeight + 'px';
+    }
+    function removeBodyPadding() {
+      document.body.style.paddingBottom = '';
+    }
+
+    function hideBanner() {
+      banner.style.display = 'none';
+      removeBodyPadding();
+      if (ro) ro.disconnect();
+    }
+
     // Показываем баннер только если согласие ещё не дано
     var consent = localStorage.getItem('mst_cookie_consent');
     if (consent === 'yes' || consent === 'no') {
@@ -50,16 +64,23 @@ const COUNTER_ID = 91052806;
     }
 
     banner.style.display = 'block';
+    applyBodyPadding();
+
+    // Keep padding in sync when banner height changes (viewport resize / font scale).
+    var ro = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(applyBodyPadding)
+      : null;
+    if (ro) ro.observe(banner);
 
     document.getElementById('cookie-accept').addEventListener('click', function () {
       localStorage.setItem('mst_cookie_consent', 'yes');
-      banner.style.display = 'none';
+      hideBanner();
       loadMetrika();
     });
 
     document.getElementById('cookie-reject').addEventListener('click', function () {
       localStorage.setItem('mst_cookie_consent', 'no');
-      banner.style.display = 'none';
+      hideBanner();
     });
 
     function loadMetrika() {

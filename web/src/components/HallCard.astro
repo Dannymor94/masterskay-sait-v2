@@ -54,6 +54,8 @@ const ctaHref = `/arenda?hall=${encodeURIComponent(hallValue)}#zayavka`;
       width={1200}
       height={900}
       alt={imageAlt}
+      widths={[320, 480, 640]}
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       loading="lazy"
       decoding="async"
       data-photo-slot={photoSlot}
@@ -153,6 +155,7 @@ const ctaHref = `/arenda?hall=${encodeURIComponent(hallValue)}#zayavka`;
     margin: 0;
     color: var(--text);
     font-size: 0.98rem;
+    flex: 1 1 auto; /* поглощает разницу в длине текстов, прибивая footer вниз */
   }
 
   .hall__sub {
