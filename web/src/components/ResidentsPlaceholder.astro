@@ -1,0 +1,143 @@
+---
+/**
+ * ResidentsPlaceholder.astro — «Резиденты» (#rezidenty). Центральный блок доверия:
+ * постоянство продаётся через постоянство других. Данных O3 (реальные люди) НЕТ →
+ * честная заглушка: текст-приглашение + нейтральные «пустые места» (силуэты), БЕЗ
+ * фейковых имён/фото/аватарок (IA §4, arenda.md).
+ *
+ * Готовность к наполнению: пустые места рендерятся из массива placeholderSlots.
+ * Когда придут реальные данные O3 — заменить массив на карточки резидентов
+ * (имя, направление, фото, ссылка); разметка слота (.resident) уже годится.
+ *
+ * Тексты — дословно из arenda.md (секция rezidenty).
+ */
+import Button from './Button.astro';
+
+// TODO O3: заменить на реальные карточки резидентов от Антона.
+// До этого — нейтральные «заведомо пустые места» (без имён и фото).
+const placeholderSlots = [1, 2, 3, 4];
+---
+
+<section id="rezidenty" class="residents" aria-labelledby="residents-title">
+  <div class="container">
+    <header class="residents__head">
+      <p class="overline">Резиденты</p>
+      <h2 id="residents-title">Резиденты</h2>
+      <p class="lead">
+        Сейчас мы собираем первый круг специалистов, которые ведут здесь
+        постоянно. Если хотите закрепить за собой день и время, пока залы
+        свободны, — станьте одним из первых резидентов «Мастерской». Это удобный
+        момент: выбор слотов пока самый широкий.
+      </p>
+    </header>
+
+    <ul class="residents__grid" aria-label="Места для будущих резидентов">
+      {
+        placeholderSlots.map(() => (
+          <li class="resident resident--empty">
+            <span class="resident__avatar" aria-hidden="true" />
+            <p class="resident__label">Свободное место</p>
+            <p class="resident__note">Может стать вашим</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="residents__cta">
+      <Button variant="soft" href="#zayavka">Стать резидентом</Button>
+    </p>
+  </div>
+</section>
+
+<style>
+  .residents {
+    padding-block: var(--space-5);
+    background: var(--surface);
+  }
+  .residents__head {
+    max-width: 60ch;
+    margin-bottom: var(--space-4);
+  }
+  .residents__head h2 {
+    margin-bottom: var(--space-2);
+  }
+
+  .residents__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .resident {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    background: var(--bg);
+    border: 1px dashed color-mix(in srgb, var(--border) 38%, transparent);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-2);
+  }
+  .resident__avatar {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    /* Нейтральный силуэт = заведомо пустое место. Без оранжевого: это не акцент,
+       а «пусто». Тёплый нейтральный из interior-палитры. */
+    background: var(--color-paper);
+    border: 1px solid color-mix(in srgb, var(--border) 24%, transparent);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Силуэт «голова + плечи» нейтральным тоном — два примитива из токен-цвета. */
+  .resident__avatar::before {
+    /* голова */
+    content: '';
+    position: absolute;
+    top: 0.85rem;
+    left: 50%;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-sand) 80%, var(--border));
+    transform: translateX(-50%);
+  }
+  .resident__avatar::after {
+    /* плечи */
+    content: '';
+    position: absolute;
+    bottom: -1.1rem;
+    left: 50%;
+    width: 2.6rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-sand) 80%, var(--border));
+    transform: translateX(-50%);
+  }
+  .resident__label {
+    margin: 0;
+    font-family: var(--font-headings);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--heading);
+  }
+  .resident__note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .residents__cta {
+    margin: var(--space-4) 0 0;
+  }
+
+  @media (min-width: 48rem) {
+    .residents__grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>

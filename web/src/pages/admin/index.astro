@@ -1,0 +1,36 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listHalls } from '../../server/halls.ts';
+import { listSpecialists } from '../../server/specialists.ts';
+import { listSlots } from '../../server/slots.ts';
+import { listEvents } from '../../server/events.ts';
+import { listContent } from '../../server/content.ts';
+import { conflictSlots } from '../../server/schedule.ts';
+import { listLeads } from '../../server/leads.ts';
+
+const stats = {
+  halls: listHalls().length,
+  specialists: listSpecialists().length,
+  slots: listSlots().length,
+  conflicts: conflictSlots().length,
+  events: listEvents().length,
+  content: listContent().length,
+  leads: listLeads().length,
+};
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Обзор" user={user}>
+  <table>
+    <tbody>
+      <tr><th>Залы</th><td>{stats.halls}</td></tr>
+      <tr><th>Специалисты</th><td>{stats.specialists}</td></tr>
+      <tr><th>Слоты расписания</th><td>{stats.slots} (конфликтов: {stats.conflicts})</td></tr>
+      <tr><th>События</th><td>{stats.events}</td></tr>
+      <tr><th>Контент-страницы</th><td>{stats.content}</td></tr>
+      <tr><th>Заявки</th><td>{stats.leads}</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">Расписание показывает только опубликованные слоты. Конфликтные
+    (приоритет аренды, O1) публикуются вручную в разделе «Расписание».</p>
+</AdminLayout>

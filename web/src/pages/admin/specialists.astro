@@ -1,0 +1,64 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import {
+  listSpecialists, createSpecialist, removeSpecialist, validateSpecialist,
+} from '../../server/specialists.ts';
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (String(form.get('_action') ?? '') === 'delete') {
+    removeSpecialist(String(form.get('id') ?? ''));
+    return Astro.redirect('/admin/specialists', 303);
+  }
+  const input = {
+    id: String(form.get('id') ?? '').trim(),
+    name: String(form.get('name') ?? '').trim(),
+    kind: String(form.get('kind') ?? '').trim() || null,
+    bio: String(form.get('bio') ?? '').trim() || null,
+    external_url: String(form.get('external_url') ?? '').trim() || null,
+    is_resident: form.get('is_resident') === 'on',
+  };
+  const v = validateSpecialist(input);
+  if (!v.ok) error = Object.values(v.errors).join(' ');
+  else {
+    createSpecialist(input);
+    return Astro.redirect('/admin/specialists', 303);
+  }
+}
+const specialists = listSpecialists();
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Специалисты" user={user}>
+  {error && <p class="err" role="alert">{error}</p>}
+  <table>
+    <thead><tr><th>id</th><th>Имя</th><th>Тип</th><th>Резидент</th><th>Внешняя ссылка</th><th></th></tr></thead>
+    <tbody>
+      {specialists.map((s) => (
+        <tr>
+          <td>{s.id}</td><td>{s.name}</td><td>{s.kind}</td>
+          <td>{s.is_resident ? 'да' : 'нет'}</td><td>{s.external_url}</td>
+          <td>
+            <form method="POST" class="inline">
+              <input type="hidden" name="_action" value="delete" />
+              <input type="hidden" name="id" value={s.id} />
+              <button class="btn btn-secondary" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h3>Создать / обновить специалиста</h3>
+  <form method="POST">
+    <label for="id">id (slug)</label><input id="id" name="id" required />
+    <label for="name">Имя/название</label><input id="name" name="name" required />
+    <label for="kind">Тип (массаж/психолог/йога…)</label><input id="kind" name="kind" />
+    <label for="external_url">Внешняя ссылка (для CTA external)</label><input id="external_url" name="external_url" type="url" />
+    <label for="bio">Био</label><textarea id="bio" name="bio" rows="2"></textarea>
+    <label><input type="checkbox" name="is_resident" style="width:auto" /> Резидент</label>
+    <p><button class="btn" type="submit">Сохранить</button></p>
+  </form>
+</AdminLayout>

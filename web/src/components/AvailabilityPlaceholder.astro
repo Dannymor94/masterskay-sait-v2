@@ -1,0 +1,128 @@
+---
+/**
+ * AvailabilityPlaceholder.astro — «Свободные слоты» (#dostupnost).
+ * Данных O2 (реальная занятость) НЕТ → честная заглушка: текст-приглашение +
+ * ПУСТОЙ шаблон сетки «дни недели × утро/день/вечер» БЕЗ проставленной занятости
+ * и БЕЗ счётчиков «осталось N слотов» (IA §4, arenda.md). Когда придут данные O2,
+ * ячейки получают статус «свободно/занято» — структура уже готова.
+ *
+ * Тексты — дословно из arenda.md (секция dostupnost).
+ */
+import Button from './Button.astro';
+
+const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const slots = ['Утро', 'День', 'Вечер'];
+---
+
+<section id="dostupnost" class="avail" aria-labelledby="avail-title">
+  <div class="container avail__grid-wrap">
+    <div class="avail__copy">
+      <p class="overline">Доступность</p>
+      <h2 id="avail-title">Свободные слоты</h2>
+      <p>
+        Свободные регулярные окна мы подбираем под вас. Напишите в заявке, какие
+        дни и время вам удобны, — посмотрим, что есть, и предложим вариант.
+        Слотов конечное число, поэтому удобные вечера разбирают заранее.
+      </p>
+      <p class="avail__cta">
+        <Button variant="soft" href="#zayavka">Подобрать слот</Button>
+      </p>
+    </div>
+
+    {/* TODO O2: пустой шаблон сетки. Когда появятся данные занятости — проставить
+        статусы ячеек (свободно/занято). До этого статусов НЕТ — это честно. */}
+    <div class="avail__table-wrap" role="group" aria-labelledby="avail-grid-caption">
+      <p id="avail-grid-caption" class="avail__caption">
+        Сетка занятости появится позже — пока окна подбираем по вашей заявке.
+      </p>
+      <table class="avail__table">
+        <thead>
+          <tr>
+            <th scope="col"><span class="visually-hidden">Время суток</span></th>
+            {days.map((d) => <th scope="col">{d}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {
+            slots.map((slot) => (
+              <tr>
+                <th scope="row">{slot}</th>
+                {days.map(() => (
+                  <td class="avail__cell" aria-label="Статус уточняется">
+                    <span aria-hidden="true">·</span>
+                  </td>
+                ))}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<style>
+  .avail {
+    padding-block: var(--space-5);
+  }
+  .avail__grid-wrap {
+    display: grid;
+    gap: var(--space-4);
+    align-items: start;
+  }
+  .avail__copy {
+    max-width: 50ch;
+  }
+  .avail__copy h2 {
+    margin-bottom: var(--space-2);
+  }
+  .avail__cta {
+    margin-top: var(--space-2);
+  }
+
+  .avail__table-wrap {
+    background: var(--surface);
+    border: 1px solid color-mix(in srgb, var(--border) 20%, transparent);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+    overflow-x: auto;
+  }
+  .avail__caption {
+    margin: 0 0 var(--space-2);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .avail__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .avail__table th {
+    font-family: var(--font-overline);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.5rem 0.4rem;
+    text-align: center;
+  }
+  .avail__table th[scope='row'] {
+    text-align: left;
+    white-space: nowrap;
+  }
+  .avail__cell {
+    text-align: center;
+    padding: 0.6rem 0.4rem;
+    color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 14%, transparent);
+    min-width: 2.5rem;
+  }
+
+  @media (min-width: 56rem) {
+    .avail__grid-wrap {
+      grid-template-columns: 0.9fr 1.3fr;
+      gap: var(--space-5);
+    }
+  }
+</style>

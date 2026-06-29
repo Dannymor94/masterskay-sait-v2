@@ -1,0 +1,94 @@
+/* СГЕНЕРИРОВАНО из design/tokens.json — НЕ РЕДАКТИРОВАТЬ ВРУЧНУЮ. */
+/* Источник истины: design/tokens.json. Регенерация: npm run gen:tokens. */
+
+:root {
+  /* --- Палитра (из бренд-бука) --- */
+  --color-white: #FFFFFF;
+  --color-orange: #E67E22;
+  --color-orange-deep: #D35400;
+  --color-ink-soft: #5C4033;
+  --color-ink: #3E2A1A;
+  --color-wood: #8B5A2B;
+  --color-wood-dark: #5C3E20;
+  --color-wood-darkest: #2A1B10;
+  --color-cream: #F9F6F0;
+  --color-sand: #D6C5A9;
+  --color-olive: #6B705C;
+  --color-paper: #F2ECE0;
+  --color-success: #6B8E5A;
+  --color-warning: #C8851D;
+  --color-error: #B0413A;
+  --color-info: #5C7A8B;
+  --color-orange-200: #F2C79E;
+  --color-orange-400: #EB9A4D;
+  --color-orange-500: #E67E22;
+  --color-orange-600: #D35400;
+  --color-orange-700: #A8430C;
+
+  /* --- Семантика: текст из венге-палитры, фон белый, акцент-кнопка --- */
+  --bg: var(--color-white);
+  --surface: var(--color-cream);
+  --text: var(--color-ink);
+  --text-muted: var(--color-ink-soft);
+  --heading: var(--color-ink-soft);
+  --heading-accent: var(--color-orange-deep);
+  --link: var(--color-orange-deep);
+  --border: var(--color-wood);
+  --accent-fill: var(--color-orange);
+  --btn-bg: var(--color-orange-deep);
+  --btn-text: var(--color-white);
+  --btn-bg-hover: var(--color-orange-700);
+  --focus-ring: var(--color-orange-deep);
+
+  /* --- Состояния (только интерфейс) --- */
+  --state-success: var(--color-success);
+  --state-warning: var(--color-warning);
+  --state-error: var(--color-error);
+  --state-info: var(--color-info);
+
+  /* --- Типографика (семейства, self-hosted, без Google CDN) --- */
+  --font-headings: 'Raleway', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-overline: 'Montserrat', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-body: 'Open Sans', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-fallback: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  /* --- Типошкала (из tokens.typography.scale) --- */
+  --text-base: 1rem;
+  --text-display: 3.0rem;
+  --leading-display: 1.1;
+  --weight-display: 200;
+  --text-h1: 2.4rem;
+  --leading-h1: 1.12;
+  --weight-h1: 600;
+  --text-h2: 1.8rem;
+  --leading-h2: 1.18;
+  --weight-h2: 600;
+  --text-h3: 1.18rem;
+  --leading-h3: 1.3;
+  --weight-h3: 600;
+  --text-overline: 0.72rem;
+  --leading-overline: 1.4;
+  --weight-overline: 600;
+  --tracking-overline: 0.24em;
+  --text-lead: 1.3rem;
+  --leading-lead: 1.6;
+  --weight-lead: 300;
+  --text-body: 1.0rem;
+  --leading-body: 1.75;
+  --weight-body: 400;
+  --text-small: clamp(0.72rem, 0.4vw + 0.6rem, 0.85rem);
+  --leading-small: 1.5;
+  --weight-small: 400;
+
+  /* --- Ритм/радиусы (производные, нейтральные) --- */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.5rem;
+  --space-5: 4rem;
+  --space-6: 6rem;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --maxw: 72rem;
+}

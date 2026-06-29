@@ -1,0 +1,402 @@
+---
+/**
+ * VisitForm.astro — форма записи на визит (#zayavka на /zapis). Паттерн M1.
+ *
+ * Инварианты (CLAUDE.md §1):
+ *  - Нативный POST: <form method="POST" action="/api/leads/visit">. Работает БЕЗ JS.
+ *  - Служебные скрытые поля: idempotency_key (UUID, генерится при рендере /zapis ДО
+ *    отправки), form_rendered_at (ISO, антиспам-время), source_page=/zapis.
+ *  - Honeypot company — aria-hidden, вне табордера, визуально скрыт.
+ *  - Чекбокс согласия + ссылка /privacy.
+ *  - Репопуляция/ошибки из flash-cookie (значения values + ошибки errors из /zapis.astro).
+ *
+ * Поля контракта (docs/m2-contract.md, leads.ts validateVisit): name*, contact*,
+ * direction (необязательно), consent*. direction предзаполняется из ?hall/&slot
+ * расписания (контекст занятия) — серверно, без JS.
+ *
+ * Логика дедупа/валидации — на бэке. Здесь только ВЁРСТКА.
+ */
+interface Props {
+  /** UUID, сгенерён при рендере /zapis (SSR), ДО отправки. = lead.id. */
+  idempotencyKey: string;
+  /** ISO-таймстемп рендера формы (антиспам). */
+  formRenderedAt: string;
+  /** Предзаполненное направление (из контекста расписания), серверно. */
+  preselectDirection?: string;
+  /** Подпись контекста (зал/слот) — для cta_origin/отображения. Опц. */
+  contextNote?: string;
+  /** Восстановленные значения после серверной ошибки (flash-cookie). */
+  values?: Record<string, string>;
+  /** Сообщения об ошибках по полям после серверной ошибки. */
+  errors?: Record<string, string>;
+}
+const {
+  idempotencyKey,
+  formRenderedAt,
+  preselectDirection = '',
+  contextNote = '',
+  values = {},
+  errors = {},
+} = Astro.props;
+
+// Перечень направлений для удобного выбора (свободный ввод тоже допустим — поле text
+// с datalist: можно выбрать из списка или вписать своё). TODO уточнить у Антона
+// финальный список направлений (синхронизировать с /napravleniya).
+const directions = [
+  'Хатха-йога',
+  'Айенгар-йога',
+  'Кундалини-йога',
+  'Женские практики',
+  'Телесные практики',
+  'Чайная церемония',
+  'Консультация психолога',
+];
+
+// --- Хелперы репопуляции ---
+const val = (k: string): string => values[k] ?? '';
+const has = (k: string): boolean => Boolean(errors[k]);
+const errId = (k: string): string => `err-${k}`;
+const describedBy = (...ids: string[]): string | undefined => {
+  const list = ids.filter(Boolean);
+  return list.length ? list.join(' ') : undefined;
+};
+
+// Направление: при ошибке — из values, иначе предвыбор из расписания.
+const directionValue = val('direction') || preselectDirection;
+
+// Сводка ошибок (порядок полей сверху вниз).
+const errorOrder = ['name', 'contact', 'direction', 'consent', 'idempotency_key'];
+const errorEntries = errorOrder
+  .filter((k) => errors[k])
+  .map((k) => ({ field: k, msg: errors[k] }));
+const anchorFor: Record<string, string> = {
+  name: '#name',
+  contact: '#contact',
+  direction: '#direction',
+  consent: '#consent',
+  idempotency_key: '#zayavka',
+};
+const hasErrors = errorEntries.length > 0;
+---
+
+<section id="zayavka" class="apply" aria-labelledby="visit-title">
+  <div class="container apply__inner">
+    <header class="apply__head">
+      <p class="overline">Запись</p>
+      <h2 id="visit-title">Запись на визит</h2>
+      <p class="lead">
+        Оставьте контакт и направление — мы подтвердим место и подскажем детали.
+        Это заявка, не оплата, — ни к чему не обязывает.
+      </p>
+      {contextNote && <p class="apply__context">{contextNote}</p>}
+    </header>
+
+    {
+      hasErrors && (
+        <div
+          class="apply__summary"
+          role="alert"
+          tabindex="-1"
+          autofocus
+          aria-labelledby="visit-summary-title"
+        >
+          <p id="visit-summary-title" class="apply__summary-title">
+            Заявку пока не отправили — поправьте, пожалуйста, отмеченные поля:
+          </p>
+          <ul class="apply__summary-list">
+            {errorEntries.map((e) => (
+              <li>
+                <a href={anchorFor[e.field] ?? '#zayavka'}>{e.msg}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    <form
+      class="apply__form"
+      method="POST"
+      action="/api/leads/visit"
+      aria-describedby="visit-privacy-note"
+    >
+      {/* Служебные скрытые поля (значения из SSR /zapis.astro). */}
+      <input type="hidden" name="idempotency_key" value={idempotencyKey} />
+      <input type="hidden" name="form_rendered_at" value={formRenderedAt} />
+      <input type="hidden" name="source_page" value="/zapis" />
+
+      {/* Honeypot — ловушка для ботов. */}
+      <div class="apply__hp" aria-hidden="true">
+        <label for="company">Не заполняйте это поле</label>
+        <input type="text" id="company" name="company" tabindex="-1" autocomplete="off" />
+      </div>
+
+      {/* 1. Имя (обязательно) */}
+      <div class="field">
+        <label class="field__label" for="name">
+          Как вас зовут <span class="field__req">(обязательно)</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          autocomplete="name"
+          placeholder="Например, Анна"
+          value={val('name')}
+          aria-invalid={has('name') ? 'true' : undefined}
+          aria-describedby={describedBy(has('name') ? errId('name') : '')}
+        />
+        {has('name') && <p class="field__error" id={errId('name')}>{errors.name}</p>}
+      </div>
+
+      {/* 2. Контакт (обязательно) */}
+      <div class="field">
+        <label class="field__label" for="contact">
+          Телефон или мессенджер <span class="field__req">(обязательно)</span>
+        </label>
+        <input
+          type="text"
+          id="contact"
+          name="contact"
+          required
+          autocomplete="tel"
+          placeholder="+7 … или @username"
+          value={val('contact')}
+          aria-invalid={has('contact') ? 'true' : undefined}
+          aria-describedby={describedBy('contact-hint', has('contact') ? errId('contact') : '')}
+        />
+        <p class="field__hint" id="contact-hint">
+          Телефон, Telegram или WhatsApp — как вам удобнее
+        </p>
+        {has('contact') && <p class="field__error" id={errId('contact')}>{errors.contact}</p>}
+      </div>
+
+      {/* 3. Направление (необязательно; список + свободный ввод через datalist) */}
+      <div class="field">
+        <label class="field__label" for="direction">Куда хотите записаться</label>
+        <input
+          type="text"
+          id="direction"
+          name="direction"
+          list="directions"
+          placeholder="Например, Хатха-йога"
+          value={directionValue}
+          aria-describedby="direction-hint"
+        />
+        <datalist id="directions">
+          {directions.map((d) => <option value={d} />)}
+        </datalist>
+        <p class="field__hint" id="direction-hint">
+          Можно выбрать из списка или вписать своё — поможем определиться
+        </p>
+      </div>
+
+      {/* 4. Согласие (обязательно) */}
+      <div class="field field--consent">
+        <label class="consent">
+          <input
+            type="checkbox"
+            id="consent"
+            name="consent"
+            value="yes"
+            required
+            aria-invalid={has('consent') ? 'true' : undefined}
+            aria-describedby={describedBy(has('consent') ? errId('consent') : '')}
+          />
+          <span>
+            Я согласен(а) на
+            <a href="/privacy">обработку персональных данных</a>
+            <span class="field__req">(обязательно)</span>
+          </span>
+        </label>
+        {has('consent') && <p class="field__error" id={errId('consent')}>{errors.consent}</p>}
+      </div>
+
+      <div class="apply__submit">
+        <button type="submit" class="apply__btn">Отправить заявку</button>
+        <p class="apply__privacy" id="visit-privacy-note">
+          Мы не передаём ваши данные третьим лицам и используем их только чтобы
+          ответить на заявку.
+        </p>
+      </div>
+    </form>
+  </div>
+</section>
+
+{/* Прогрессивное улучшение: мягкая валидация поверх рабочей формы (defer, is:inline).
+    Форма работает без JS — скрипт лишь улучшает. */}
+<script is:inline type="module" src="/js/visit-form.js" defer></script>
+
+<style>
+  .apply {
+    padding-block: var(--space-5);
+  }
+  .apply__inner {
+    max-width: 44rem;
+  }
+  .apply__head {
+    margin-bottom: var(--space-4);
+  }
+  .apply__head h2 {
+    margin-bottom: var(--space-2);
+  }
+  .apply__context {
+    margin: var(--space-1) 0 0;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+  }
+
+  .apply__summary {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    border: 2px solid var(--btn-bg);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--btn-bg) 6%, var(--bg));
+  }
+  .apply__summary:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .apply__summary-title {
+    margin: 0 0 var(--space-2);
+    font-weight: 700;
+    color: var(--text);
+  }
+  .apply__summary-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .apply__summary-list a {
+    color: var(--state-error);
+    text-decoration: underline;
+  }
+
+  .apply__form {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .apply__hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .field__label {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: var(--text);
+  }
+  .field__req {
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .field__hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .field__error {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--state-error);
+    line-height: 1.5;
+  }
+  .field__error::before {
+    content: '! ';
+  }
+  [aria-invalid='true'] {
+    border-color: var(--btn-bg) !important;
+  }
+
+  input[type='text'],
+  input[type='number'] {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.7rem 0.85rem;
+    line-height: 1.4;
+  }
+  input::placeholder {
+    color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  }
+  input:focus-visible {
+    border-color: var(--btn-bg);
+  }
+
+  .field--consent {
+    margin-top: var(--space-1);
+  }
+  .consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .consent input {
+    margin-top: 0.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--btn-bg);
+    flex: 0 0 auto;
+  }
+  .consent a {
+    color: var(--link);
+  }
+
+  .apply__submit {
+    margin-top: var(--space-2);
+    display: grid;
+    gap: var(--space-2);
+  }
+  .apply__btn {
+    justify-self: start;
+    font-family: var(--font-body);
+    font-size: var(--btn-font-size);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--btn-text);
+    background: var(--btn-bg);
+    border: 2px solid var(--btn-bg);
+    border-radius: var(--radius-md);
+    padding: 0.9rem 2rem;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+  }
+  .apply__btn:hover {
+    background: var(--btn-bg-hover);
+    border-color: var(--btn-bg-hover);
+  }
+  .apply__privacy {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 48ch;
+  }
+
+  @media (max-width: 30rem) {
+    .apply__btn {
+      justify-self: stretch;
+      text-align: center;
+    }
+  }
+</style>

@@ -1,0 +1,84 @@
+---
+/**
+ * /zapis — запись на визит (T2-4, стадия M2). Цель CTA «Записаться» из расписания.
+ *
+ * SSR (prerender=false): на каждый GET генерим idempotency_key (UUID) и
+ * form_rendered_at (ISO) ДО отправки (CLAUDE.md §1). Читаем ?hall=&slot= из
+ * расписания для контекста (bookingHref в scheduleView), предзаполняем направление
+ * по slot.title если слот найден. Читаем flash-cookie после серверной ошибки и
+ * восстанавливаем значения/ошибки (PRG, паттерн /arenda).
+ *
+ * Цвета/шрифты — через var() (ни одного хардкод-hex).
+ */
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import VisitForm from '../components/VisitForm.astro';
+import { publishedSlots } from '../server/schedule.ts';
+import { getHall } from '../server/halls.ts';
+
+// Служебные поля: генерим при КАЖДОМ рендере GET /zapis (до отправки).
+const idempotencyKey = crypto.randomUUID();
+const formRenderedAt = new Date().toISOString();
+
+// Контекст из расписания: ?slot= → название занятия → предзаполнить направление;
+// ?hall= → имя зала для подписи контекста. Без JS, серверно.
+const slotId = (Astro.url.searchParams.get('slot') ?? '').trim();
+const hallId = (Astro.url.searchParams.get('hall') ?? '').trim();
+
+let preselectDirection = '';
+let contextNote = '';
+if (slotId) {
+  // Ищем слот среди опубликованных (только их можно записать из расписания).
+  const slot = publishedSlots().find((sl) => sl.id === slotId);
+  if (slot) {
+    preselectDirection = slot.title ?? '';
+    const hall = getHall(slot.hall_id || hallId);
+    const parts = [slot.title, hall?.name].filter(Boolean);
+    if (parts.length) contextNote = `Вы записываетесь: ${parts.join(' · ')}`;
+  }
+} else if (hallId) {
+  const hall = getHall(hallId);
+  if (hall) contextNote = `Зал: ${hall.name}`;
+}
+
+// Flash-cookie после серверной ошибки (формат {errors, values}); читаем и гасим.
+let values: Record<string, string> = {};
+let errors: Record<string, string> = {};
+const flash = Astro.cookies.get('mst_flash');
+if (flash?.value) {
+  try {
+    const parsed = flash.json() as {
+      errors?: Record<string, string>;
+      values?: Record<string, string>;
+    };
+    if (parsed && typeof parsed === 'object') {
+      errors = parsed.errors ?? {};
+      values = parsed.values ?? {};
+    }
+  } catch {
+    // битый cookie — игнорируем
+  }
+  Astro.cookies.delete('mst_flash', { path: '/' });
+}
+---
+
+<BaseLayout
+  title="Запись на визит — Мастерская, Ростов-на-Дону"
+  description="Запишитесь на занятие или практику в центре «Мастерская». Оставьте контакт — подтвердим место и подскажем детали."
+>
+  <SiteHeader slot="header" />
+
+  <VisitForm
+    idempotencyKey={idempotencyKey}
+    formRenderedAt={formRenderedAt}
+    preselectDirection={preselectDirection}
+    contextNote={contextNote}
+    values={values}
+    errors={errors}
+  />
+
+  <SiteFooter slot="footer" />
+</BaseLayout>

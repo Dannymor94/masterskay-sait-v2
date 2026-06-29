@@ -1,0 +1,58 @@
+name: CI (GREEN-гейт)
+
+# Зелёный CI — условие слияния в main (вливает человек, см. WORKFLOW §5).
+# Устойчив к раннему состоянию репо: пока нет web/package.json — шаги сборки
+# пропускаются (документы-онли коммиты не падают).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Есть ли фронт-приложение?
+        id: detect
+        working-directory: .
+        run: |
+          if [ -f web/package.json ]; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::web/package.json не найден — стадия каркаса, сборка пропущена."
+          fi
+
+      - name: Node
+        if: steps.detect.outputs.app == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        if: steps.detect.outputs.app == 'true'
+        run: npm ci
+
+      - name: Lint
+        if: steps.detect.outputs.app == 'true'
+        run: npm run lint --if-present
+
+      - name: Test (Vitest, RED→GREEN)
+        if: steps.detect.outputs.app == 'true'
+        run: npm test --if-present
+
+      - name: Build
+        if: steps.detect.outputs.app == 'true'
+        run: npm run build --if-present

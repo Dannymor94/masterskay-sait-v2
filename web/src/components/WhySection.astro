@@ -1,0 +1,143 @@
+---
+/**
+ * WhySection.astro — «Почему специалисты остаются» (#pochemu). Атмосфера как
+ * польза клиенту: 6 аргументов сеткой. Лёгкий тёплый фон секции (var(--surface)
+ * = cream) — допустимый нейтральный фон, НЕ пастельный второй акцент.
+ * Каждый пункт — иконка-знак (заливка orange-fill) + заголовок + текст.
+ * Внизу — мягкий поддерживающий CTA «Оставить заявку».
+ *
+ * Тексты — дословно из arenda.md (секция pochemu).
+ */
+import Button from './Button.astro';
+
+const reasons = [
+  {
+    title: 'Дерево и тёплый свет',
+    text: 'Залы оформлены по бренд-буку: натуральные материалы, дневной свет, ничего лишнего. Человек заходит и сразу выдыхает — вам не нужно создавать настроение с нуля, оно уже есть.',
+  },
+  {
+    title: 'Тишина',
+    text: 'Залы стоят в стороне от шума. Клиент не отвлекается, а вы ведёте, не перекрикивая улицу. Для массажа, терапии и медитаций это половина результата.',
+  },
+  {
+    title: 'Чай после практики',
+    text: 'У нас есть чайная зона, и гость может остаться на чай. Для вашего клиента это не «сходил на сеанс», а «побыл в хорошем месте» — и он возвращается.',
+  },
+  {
+    title: 'Забота о деталях',
+    text: 'Чисто, готово, тепло. Коврики расстелены, посуда вымыта, свет настроен. Вы приходите вести, а не обустраивать помещение.',
+  },
+  {
+    title: 'Постоянное место',
+    text: 'Регулярный слот — это ваш день и ваше время каждую неделю. Клиенты привыкают: «по вторникам — к вам, сюда». Постоянство удобно и вам, и им.',
+  },
+  {
+    title: 'Сообщество',
+    text: 'Здесь рядом другие практики и специалисты. Это живая среда, обмен и иногда — общие клиенты. Вы ведёте не в пустом зале, а в месте, где что-то происходит.',
+  },
+];
+---
+
+<section id="pochemu" class="why" aria-labelledby="why-title">
+  <div class="container">
+    <header class="why__head">
+      <p class="overline">Почему здесь</p>
+      <h2 id="why-title">Почему специалисты остаются</h2>
+      <p class="lead">
+        Атмосфера места работает на вашу практику — и её чувствует ваш клиент.
+      </p>
+    </header>
+
+    <ul class="why__grid">
+      {
+        reasons.map((r) => (
+          <li class="why__item">
+            <span class="why__icon" aria-hidden="true" />
+            <div>
+              <h3 class="why__item-title">{r.title}</h3>
+              <p class="why__item-text">{r.text}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="why__cta">
+      <Button variant="soft" href="#zayavka">Оставить заявку</Button>
+    </p>
+  </div>
+</section>
+
+<style>
+  .why {
+    padding-block: var(--space-5);
+    background: var(--surface);
+  }
+  .why__head {
+    max-width: 52ch;
+    margin-bottom: var(--space-4);
+  }
+  .why__head h2 {
+    margin-bottom: var(--space-2);
+  }
+
+  .why__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+  .why__item {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+  }
+  .why__icon {
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-md);
+    background: var(--accent-fill); /* знак-заливка, не текст */
+    margin-top: 0.15rem;
+    position: relative;
+  }
+  .why__icon::after {
+    /* мелкий «лист/искра» внутри плашки — белым на оранжевом */
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 0 50% 50% 50%;
+    background: var(--color-white);
+    transform: rotate(45deg);
+  }
+  .why__item-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.1rem;
+  }
+  .why__item-text {
+    margin: 0;
+    font-size: 0.97rem;
+    color: var(--text);
+  }
+
+  .why__cta {
+    margin: var(--space-4) 0 0;
+  }
+
+  @media (min-width: 40rem) {
+    .why__grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3) var(--space-4);
+    }
+  }
+  @media (min-width: 64rem) {
+    .why__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

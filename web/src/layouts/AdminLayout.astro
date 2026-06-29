@@ -1,0 +1,82 @@
+---
+/**
+ * AdminLayout — рабочая (не лендинговая) разметка админки. Минимально-функционально
+ * на токенах (var()), без хардкод-hex. Семантика/доступность сохраняются.
+ */
+import '../styles/tokens.css';
+
+interface Props {
+  title: string;
+  user?: string;
+}
+const { title, user } = Astro.props;
+
+const nav = [
+  ['/admin', 'Обзор'],
+  ['/admin/halls', 'Залы'],
+  ['/admin/specialists', 'Специалисты'],
+  ['/admin/slots', 'Расписание'],
+  ['/admin/events', 'События'],
+  ['/admin/content', 'Контент'],
+  ['/admin/leads', 'Заявки'],
+];
+const here = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · Админка «Мастерская»</title>
+    <style is:global>
+      body { margin: 0; font-family: system-ui, sans-serif; color: var(--text);
+        background: var(--bg); line-height: 1.5; }
+      .admin-wrap { display: flex; min-height: 100vh; }
+      .admin-nav { background: var(--surface); border-right: 1px solid var(--border);
+        padding: 1rem; min-width: 12rem; }
+      .admin-nav h1 { font-size: 1rem; color: var(--heading-accent); }
+      .admin-nav a { display: block; padding: .4rem .5rem; color: var(--link);
+        text-decoration: none; border-radius: 4px; }
+      .admin-nav a[aria-current="page"] { background: var(--accent-fill);
+        color: var(--btn-text); }
+      .admin-main { flex: 1; padding: 1.5rem 2rem; max-width: 70rem; }
+      table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+      th, td { border: 1px solid var(--border); padding: .4rem .6rem; text-align: left;
+        vertical-align: top; font-size: .9rem; }
+      th { background: var(--surface); }
+      form.inline { display: inline; }
+      label { display: block; margin: .5rem 0 .2rem; font-weight: 600; }
+      input, select, textarea { width: 100%; max-width: 32rem; padding: .4rem;
+        border: 1px solid var(--border); border-radius: 4px; font: inherit; }
+      .btn { background: var(--btn-bg); color: var(--btn-text); border: 0;
+        padding: .45rem .9rem; border-radius: 4px; cursor: pointer; font: inherit; }
+      .btn-secondary { background: var(--surface); color: var(--text);
+        border: 1px solid var(--border); }
+      .tag { display: inline-block; padding: .1rem .4rem; border-radius: 4px;
+        font-size: .75rem; border: 1px solid var(--border); }
+      .tag-conflict { background: var(--color-warning); color: var(--color-white); }
+      .tag-pub { background: var(--color-success); color: var(--color-white); }
+      .err { color: var(--color-error); }
+      .muted { color: var(--text-muted); }
+    </style>
+  </head>
+  <body>
+    <div class="admin-wrap">
+      <nav class="admin-nav" aria-label="Навигация админки">
+        <h1>Мастерская · админ</h1>
+        {nav.map(([href, label]) => (
+          <a href={href} aria-current={here === href ? 'page' : undefined}>{label}</a>
+        ))}
+        <form method="POST" action="/admin/logout" class="inline" style="margin-top:1rem">
+          <button class="btn btn-secondary" type="submit">Выйти{user ? ` (${user})` : ''}</button>
+        </form>
+      </nav>
+      <main class="admin-main">
+        <h2>{title}</h2>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

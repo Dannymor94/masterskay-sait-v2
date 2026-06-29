@@ -1,0 +1,23 @@
+-- 0003_conflict_confirmed.sql — фикс M2-QA-1 (блокер Gate M2).
+--
+-- Добавляет slot.conflict_confirmed — флаг РУЧНОГО подтверждения публикации
+-- конфликтного own-слота администратором (O1, docs/m2-contract.md).
+--
+-- Проблема, которую закрывает миграция: detectConflicts() вызывается на каждом
+-- рендере /raspisanie и /admin/slots и СНОВА снимал публикацию у own-слота,
+-- который всё ещё пересекается с арендой — даже ПОСЛЕ ручного подтверждения.
+-- Нарушало инвариант O1: «публикация конфликтного слота — только ручным
+-- действием, после этого попадает в выдачу и ОСТАЁТСЯ».
+--
+-- Решение: conflict_confirmed=1 ставится ТОЛЬКО через confirmPublishConflict(id,true).
+-- detectConflicts() уважает это решение: при conflict_confirmed=1 НЕ трогает
+-- is_published. Сбрасывается в 0, когда пересечение исчезло или админ снял публикацию.
+--
+-- СИНХРОНИЗАЦИЯ: тот же столбец продублирован в web/db/schema.sql и в константе
+-- SCHEMA_DDL_M2 в web/src/server/db.ts (рантайм). Любую правку — во все три места.
+--
+-- Postgres-соответствие: INTEGER 0/1 -> boolean DEFAULT false.
+
+ALTER TABLE slot ADD COLUMN conflict_confirmed INTEGER NOT NULL DEFAULT 0;
+-- ^ 0/1. PG: boolean DEFAULT false. =1 — админ вручную подтвердил публикацию
+--   конфликтного слота (единственный путь публикации конфликта).

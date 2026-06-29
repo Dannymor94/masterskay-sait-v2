@@ -1,0 +1,37 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listLeads, updateLeadStatus, LEAD_STATUSES } from '../../server/leads.ts';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  updateLeadStatus(String(form.get('id') ?? ''), String(form.get('status') ?? ''));
+  return Astro.redirect('/admin/leads', 303);
+}
+const leads = listLeads();
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Заявки" user={user}>
+  <p class="muted">Просмотр заявок (аренда/визит/событие) и смена статуса. Запись во
+    внешние системы (CRM/уведомления) не делается автоматически — двухфазно с человеком.</p>
+  <table>
+    <thead><tr><th>Дата</th><th>Тип</th><th>Имя</th><th>Контакт</th><th>Страница</th><th>Статус</th></tr></thead>
+    <tbody>
+      {leads.map((l) => (
+        <tr>
+          <td class="muted">{l.created_at}</td><td>{l.type}</td><td>{l.name}</td>
+          <td>{l.contact}</td><td>{l.source_page}</td>
+          <td>
+            <form method="POST" class="inline">
+              <input type="hidden" name="id" value={l.id} />
+              <select name="status">
+                {LEAD_STATUSES.map((st) => <option value={st} selected={st === l.status}>{st}</option>)}
+              </select>
+              <button class="btn btn-secondary" type="submit">OK</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</AdminLayout>

@@ -1,0 +1,111 @@
+---
+/**
+ * Hero.astro — герой /arenda (#hero). Выше сгиба: крупное фото лучшего зала,
+ * overline + H1-обещание + подзаголовок + РОВНО ОДИН первичный CTA + микро-якорь.
+ * Фото — без lazy (это LCP-кадр). Кадрирование 1600×1000 (16:10).
+ * Палитра: текст — венге; CTA — primary (orange-deep + белый). Без второго акцента.
+ */
+import { Image } from 'astro:assets';
+import Button from './Button.astro';
+import heroImg from '../assets/placeholders/hero.jpg';
+---
+
+<section id="hero" class="hero" aria-labelledby="hero-title">
+  <div class="container hero__grid">
+    <div class="hero__copy">
+      <p class="overline">Аренда залов для практики</p>
+      <h1 id="hero-title" class="hero__title">
+        Место, которое можно сделать своим
+      </h1>
+      <p class="lead hero__sub">
+        Тёплый зал, ровный свет и тишина — каждую неделю в одни и те же дни.
+        Вы ведёте, мы держим атмосферу, в которой вашему клиенту спокойно.
+      </p>
+      <div class="hero__actions">
+        <Button variant="primary" href="#zayavka">Закрепить за собой слот</Button>
+        <p class="hero__hint">Три зала · регулярные слоты</p>
+      </div>
+    </div>
+
+    <figure class="hero__media">
+      {/* LCP-кадр: оптимизация Astro <Image> (sharp), БЕЗ lazy — eager + high. */}
+      <Image
+        src={heroImg}
+        width={1600}
+        height={1000}
+        alt="Плейсхолдер: большой зал «Мастерской» — дерево, дневной свет вдоль стены, тёплая атмосфера. Ждём фотосъёмку."
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      />
+    </figure>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-block: var(--space-5) var(--space-5);
+    background: var(--bg);
+  }
+  .hero__grid {
+    display: grid;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .hero__title {
+    font-size: clamp(2.1rem, 5vw, var(--text-display));
+    font-weight: 200; /* display-вес из токенов для крупного обещания */
+    line-height: var(--leading-display);
+    color: var(--heading);
+    margin-bottom: var(--space-3);
+    text-wrap: balance;
+  }
+  .hero__sub {
+    max-width: 46ch;
+    margin-bottom: var(--space-4);
+  }
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+  .hero__hint {
+    margin: 0;
+    font-family: var(--font-overline);
+    font-size: var(--text-overline);
+    font-weight: 600;
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .hero__media {
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .hero__media img {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  @media (min-width: 60rem) {
+    .hero {
+      padding-block: var(--space-6) var(--space-6);
+    }
+    .hero__grid {
+      grid-template-columns: 1fr 1.05fr;
+      gap: var(--space-5);
+    }
+    .hero__copy {
+      order: 1;
+    }
+    .hero__media {
+      order: 2;
+    }
+  }
+</style>

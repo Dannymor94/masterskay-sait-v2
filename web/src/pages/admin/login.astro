@@ -1,0 +1,90 @@
+---
+/**
+ * /admin/login — форма входа (нативный POST, без JS). Одна роль.
+ *
+ * Если авторизация не настроена (нет env) — показываем понятную инструкцию для
+ * Антона, как завести секрет (НЕ 500, публичный сайт работает).
+ * Иначе — форма логина: сверка с ADMIN_PASSWORD_HASH (scrypt), выдача подписанной
+ * httpOnly-cookie на SESSION_SECRET.
+ */
+export const prerender = false;
+
+import '../../styles/tokens.css';
+import {
+  isAuthConfigured,
+  checkCredentials,
+  issueSession,
+  getAdminUser,
+  SESSION_COOKIE,
+  SESSION_COOKIE_OPTS,
+} from '../../server/auth.ts';
+
+const configured = isAuthConfigured();
+let error = '';
+
+if (Astro.request.method === 'POST' && configured) {
+  const form = await Astro.request.formData();
+  const user = String(form.get('user') ?? '').trim();
+  const password = String(form.get('password') ?? '');
+  if (checkCredentials(user, password)) {
+    Astro.cookies.set(SESSION_COOKIE, issueSession(user), SESSION_COOKIE_OPTS);
+    return Astro.redirect('/admin', 303);
+  }
+  error = 'Неверный логин или пароль.';
+}
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Вход в админку · Мастерская</title>
+    <style is:global>
+      body { font-family: system-ui, sans-serif; color: var(--text);
+        background: var(--surface); display: grid; place-items: center; min-height: 100vh;
+        margin: 0; }
+      .card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+        padding: 1.5rem 2rem; max-width: 28rem; }
+      h1 { color: var(--heading-accent); font-size: 1.2rem; }
+      label { display: block; margin: .75rem 0 .25rem; font-weight: 600; }
+      input { width: 100%; padding: .5rem; border: 1px solid var(--border);
+        border-radius: 4px; font: inherit; }
+      .btn { margin-top: 1rem; background: var(--btn-bg); color: var(--btn-text);
+        border: 0; padding: .5rem 1rem; border-radius: 4px; cursor: pointer; font: inherit; }
+      .err { color: var(--color-error); margin-top: .5rem; }
+      code { background: var(--surface); padding: .1rem .3rem; border-radius: 3px; }
+      pre { background: var(--surface); padding: .75rem; border-radius: 4px;
+        overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Вход в админку</h1>
+      {configured ? (
+        <form method="POST" action="/admin/login">
+          <label for="user">Логин</label>
+          <input id="user" name="user" autocomplete="username" value={getAdminUser()} />
+          <label for="password">Пароль</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+          {error && <p class="err" role="alert">{error}</p>}
+          <button class="btn" type="submit">Войти</button>
+        </form>
+      ) : (
+        <div>
+          <p><strong>Доступ ещё не настроен.</strong> Это делает человек (не агент).</p>
+          <ol>
+            <li>Сгенерируйте хэш пароля:<br /><code>node scripts/hash-password.mjs 'ваш-пароль'</code></li>
+            <li>Сгенерируйте секрет сессии:<br /><code>openssl rand -hex 32</code></li>
+            <li>Положите в <code>web/.env</code> (не коммитить):</li>
+          </ol>
+          <pre>ADMIN_USER=admin
+ADMIN_PASSWORD_HASH=scrypt$...
+SESSION_SECRET=&lt;hex-строка&gt;</pre>
+          <p class="muted">После перезапуска сервера здесь появится форма входа.</p>
+        </div>
+      )}
+    </div>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "name": "masterskaya-web",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "npm run gen:tokens && astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "gen:tokens": "node scripts/gen-tokens.mjs",
+    "lint": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@astrojs/node": "^8.3.4",
+    "astro": "^4.16.18",
+    "better-sqlite3": "^11.10.0",
+    "marked": "^18.0.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.19.43",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "sharp@0.33.5": true,
+    "better-sqlite3@11.10.0": true,
+    "fsevents@2.3.3": true
+  }
+}

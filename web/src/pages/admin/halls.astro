@@ -1,0 +1,70 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listHalls, createHall, removeHall, validateHall } from '../../server/halls.ts';
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? 'save');
+  if (action === 'delete') {
+    removeHall(String(form.get('id') ?? ''));
+    return Astro.redirect('/admin/halls', 303);
+  }
+  const num = (k: string) => {
+    const v = String(form.get(k) ?? '').trim();
+    return v === '' ? null : Number(v);
+  };
+  const input = {
+    id: String(form.get('id') ?? '').trim(),
+    name: String(form.get('name') ?? '').trim(),
+    area_m2: num('area_m2'),
+    capacity: num('capacity'),
+    equipment: String(form.get('equipment') ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+    rate_subscription: String(form.get('rate_subscription') ?? '').trim() || null,
+    description: String(form.get('description') ?? '').trim() || null,
+  };
+  const v = validateHall(input);
+  if (!v.ok) {
+    error = Object.values(v.errors).join(' ');
+  } else {
+    createHall(input);
+    return Astro.redirect('/admin/halls', 303);
+  }
+}
+const halls = listHalls();
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Залы" user={user}>
+  {error && <p class="err" role="alert">{error}</p>}
+  <table>
+    <thead><tr><th>id</th><th>Название</th><th>м²</th><th>Вмест.</th><th>Оснащение</th><th></th></tr></thead>
+    <tbody>
+      {halls.map((h) => (
+        <tr>
+          <td>{h.id}</td><td>{h.name}</td><td>{h.area_m2}</td><td>{h.capacity}</td>
+          <td>{h.equipment.join(', ')}</td>
+          <td>
+            <form method="POST" class="inline">
+              <input type="hidden" name="_action" value="delete" />
+              <input type="hidden" name="id" value={h.id} />
+              <button class="btn btn-secondary" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h3>Создать / обновить зал</h3>
+  <form method="POST">
+    <label for="id">id (slug)</label><input id="id" name="id" required />
+    <label for="name">Название</label><input id="name" name="name" required />
+    <label for="area_m2">Площадь, м²</label><input id="area_m2" name="area_m2" type="number" />
+    <label for="capacity">Вместимость</label><input id="capacity" name="capacity" type="number" />
+    <label for="equipment">Оснащение (через запятую)</label><input id="equipment" name="equipment" />
+    <label for="rate_subscription">Ставка (абонемент)</label><input id="rate_subscription" name="rate_subscription" value="по запросу" />
+    <label for="description">Описание</label><textarea id="description" name="description" rows="2"></textarea>
+    <p><button class="btn" type="submit">Сохранить</button></p>
+  </form>
+</AdminLayout>

@@ -1,0 +1,45 @@
+---
+/**
+ * /[slug] — контент-страницы из content_page (T2-3, стадия M2).
+ *
+ * Обслуживает разделы: napravleniya, praktiki, chaynaya, tury, psiholog.
+ * Hybrid SSR (prerender=false): читаем строку content_page по slug на каждый
+ * запрос; title → <h1>, meta_description → <meta>, hero_image, body(markdown) →
+ * HTML через renderMarkdown. Нет такого раздела (или slug вне белого списка) → 404.
+ *
+ * Белый список slug — чтобы [slug].astro не перехватывал чужие маршруты
+ * (arenda/raspisanie/zapis/sobytiya/admin/api — это отдельные файлы и имеют
+ * приоритет статического сегмента в Astro; список — дополнительная защита).
+ *
+ * Цвета/шрифты/размеры — через var() (ни одного хардкод-hex).
+ */
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import ContentArticle from '../components/ContentArticle.astro';
+import { getContent } from '../server/content.ts';
+import { renderMarkdown } from '../lib/markdown.ts';
+
+// Разделы, которые отдаёт этот маршрут (остальные slug → 404).
+const CONTENT_SLUGS = new Set(['napravleniya', 'praktiki', 'chaynaya', 'tury', 'psiholog']);
+
+const { slug } = Astro.params;
+const page = slug && CONTENT_SLUGS.has(slug) ? getContent(slug) : undefined;
+
+if (!page) {
+  return new Response('Страница не найдена', { status: 404 });
+}
+
+const bodyHtml = renderMarkdown(page.body);
+const description = page.meta_description ?? undefined;
+---
+
+<BaseLayout title={`${page.title} — Мастерская`} description={description}>
+  <SiteHeader slot="header" />
+
+  <ContentArticle title={page.title} bodyHtml={bodyHtml} heroImage={page.hero_image} />
+
+  <SiteFooter slot="footer" />
+</BaseLayout>

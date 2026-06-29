@@ -1,0 +1,139 @@
+---
+/**
+ * ScheduleSlot.astro — одна строка/карточка расписания на /raspisanie.
+ *
+ * Модель «два CTA на слот» (SPEC §3, docs/m2-contract.md):
+ *  - cta_type='booking'  → кнопка «Записаться» → форма визита /zapis?hall=&slot=
+ *    (нашу форму визита создаёт T2-4; ссылка ведёт на /zapis уже сейчас).
+ *  - cta_type='external' → ссылка «К специалисту» → external_url
+ *    (новая вкладка, rel="noopener noreferrer"; без онлайн-оплаты).
+ *
+ * Только этот компонент решает, какой CTA показать — страница лишь передаёт слот
+ * (уже отфильтрованный publishedForView: is_published=1, O1). Семантика: <article>
+ * с временем (<time>), названием, залом и специалистом. Цвета/шрифты — через var().
+ *
+ * Кнопка «Записаться» — это Button (primary, ≥16px). «К специалисту» — Button soft
+ * (внешняя текстовая ссылка-CTA).
+ */
+import Button from './Button.astro';
+import { bookingHref, type ScheduleSlot } from './scheduleView.ts';
+
+interface Props {
+  item: ScheduleSlot;
+  hallName: string;
+  specialistName?: string | null;
+}
+const { item, hallName, specialistName = null } = Astro.props;
+
+const isBooking = item.cta_type === 'booking';
+const href = isBooking ? bookingHref(item) : (item.external_url ?? '#');
+---
+
+<article class="slot">
+  <div class="slot__when">
+    <time class="slot__time" datetime={item.time_start}>{item.time_start}</time>
+    <span class="slot__dash" aria-hidden="true">–</span>
+    <time class="slot__time" datetime={item.time_end}>{item.time_end}</time>
+  </div>
+
+  <div class="slot__body">
+    <h3 class="slot__title">{item.title ?? 'Занятие'}</h3>
+    <p class="slot__meta">
+      <span class="slot__hall">{hallName}</span>
+      {specialistName && <span class="slot__sep" aria-hidden="true">·</span>}
+      {specialistName && <span class="slot__spec">{specialistName}</span>}
+    </p>
+  </div>
+
+  <div class="slot__cta">
+    {
+      isBooking ? (
+        <Button variant="primary" href={href}>
+          Записаться
+        </Button>
+      ) : (
+        <Button
+          variant="secondary"
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          К специалисту
+          <span class="visually-hidden"> (откроется в новой вкладке)</span>
+        </Button>
+      )
+    }
+  </div>
+</article>
+
+<style>
+  .slot {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--bg);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    border-radius: var(--radius-lg);
+  }
+
+  .slot__when {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-family: var(--font-headings);
+    font-weight: var(--weight-h3, 600);
+    color: var(--heading);
+  }
+  .slot__time {
+    font-size: var(--text-h3);
+    line-height: 1.1;
+  }
+  .slot__dash {
+    color: var(--text-muted);
+  }
+
+  .slot__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .slot__title {
+    margin: 0;
+    font-size: var(--text-h3);
+    color: var(--heading);
+  }
+  .slot__meta {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: var(--text-small);
+  }
+  .slot__hall {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .slot__sep {
+    color: var(--border);
+  }
+
+  .slot__cta {
+    margin-top: var(--space-1);
+  }
+
+  /* На десктопе — время | контент | CTA в одну строку. */
+  @media (min-width: 48rem) {
+    .slot {
+      grid-template-columns: 9rem 1fr auto;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .slot__cta {
+      margin-top: 0;
+      justify-self: end;
+    }
+  }
+</style>

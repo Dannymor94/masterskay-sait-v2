@@ -1,0 +1,31 @@
+# CODEOWNERS — обязательный ревьюер = человек (Антон). Слияние в main и релиз
+# делает человек после приёмки гейта (WORKFLOW §5, CLAUDE.md §2).
+#
+# Примечание: brand-guardian — AI-субагент, не GitHub-аккаунт, поэтому в CODEOWNERS
+# его указать нельзя. Его право вето на визуал/текст — процессное правило (WORKFLOW
+# §5 п.6): PR с изменениями визуала/текста не вливается без бренд-ревью. Источники
+# истины бренда (design/*) правит только человек.
+
+# По умолчанию — всё на ревью владельцу проекта.
+*                       @Dannymor94
+
+# Источники истины бренда — особое внимание человека (агенты не правят).
+/design/                @Dannymor94
+/design/tokens.json     @Dannymor94
+/design/voice.md        @Dannymor94
+
+# Сгенерированные из токенов стили — вручную не редактируются.
+/web/src/styles/        @Dannymor94
+
+# Канон и процесс.
+/PROJECT_GUIDE.md       @Dannymor94
+/SPEC.md                @Dannymor94
+/PLAN.md                @Dannymor94
+/DECISIONS.md           @Dannymor94
+/CLAUDE.md              @Dannymor94
+/WORKFLOW.md            @Dannymor94
+/TASKS.md               @Dannymor94
+/.github/               @Dannymor94
+
+# Секреты/окружение — заводит человек, в репо не попадают (.gitignore).
+/.env.example           @Dannymor94

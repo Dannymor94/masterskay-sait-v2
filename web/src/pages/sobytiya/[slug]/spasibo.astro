@@ -1,0 +1,79 @@
+---
+/**
+ * /sobytiya/<slug>/spasibo — «спасибо» после регистрации на событие
+ * (PRG: POST→redirect→GET). Цель Метрики `event_register` фиксируется здесь.
+ *
+ * prerender=false: страница в цепочке PRG. Проверяем существование события по slug
+ * (404 если нет), чтобы ссылка «вернуться к событию» вела на реальную страницу.
+ */
+export const prerender = false;
+
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SiteHeader from '../../../components/SiteHeader.astro';
+import SiteFooter from '../../../components/SiteFooter.astro';
+import Button from '../../../components/Button.astro';
+import Metrika from '../../../components/Metrika.astro';
+import { getEventBySlug } from '../../../server/events.ts';
+
+const { slug } = Astro.params;
+const event = slug ? getEventBySlug(slug) : undefined;
+if (!event) {
+  return new Response('Событие не найдено', { status: 404 });
+}
+---
+
+<BaseLayout
+  title="Запись принята — Мастерская"
+  description="Спасибо, мы получили вашу запись на событие и свяжемся с вами."
+>
+  <SiteHeader slot="header" />
+
+  <section class="thanks" aria-labelledby="thanks-title">
+    <div class="container thanks__inner">
+      <p class="overline">Запись на событие</p>
+      <h1 id="thanks-title">Запись принята</h1>
+
+      <p class="thanks__lead">
+        Спасибо. Мы записали вас на «{event.title}» и скоро свяжемся, чтобы
+        подтвердить детали.
+      </p>
+
+      <p>
+        Мы напишем или позвоним по тому контакту, который вы оставили.
+        {/* TODO срок/канал: уточнить у Антона типовой срок ответа и основной канал. */}
+      </p>
+
+      <div class="thanks__actions">
+        <Button variant="primary" href={`/sobytiya/${event.slug}`}>
+          Вернуться к событию
+        </Button>
+        <Button variant="soft" href="/sobytiya">Все события</Button>
+      </div>
+    </div>
+  </section>
+
+  <SiteFooter slot="footer" />
+
+  {/* Метрика + цель event_register — только здесь, в точке конверсии. */}
+  <Metrika goal="event_register" />
+</BaseLayout>
+
+<style>
+  .thanks {
+    padding-block: var(--space-5);
+  }
+  .thanks__inner {
+    max-width: 44rem;
+  }
+  .thanks__lead {
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  .thanks__actions {
+    margin-top: var(--space-4);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+</style>

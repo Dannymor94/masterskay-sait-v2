@@ -1,0 +1,54 @@
+---
+/**
+ * /privacy — Политика конфиденциальности (заглушка M1).
+ *
+ * На форме аренды ссылка согласия ведёт сюда (/privacy). Реальный юридический
+ * текст ещё не готов — здесь обтекаемая заглушка, чтобы ссылка не вела в 404.
+ *
+ * TODO M3 (SPEC §7): перенести реальный текст политики обработки ПДн (152-ФЗ),
+ * согласовать формулировки с Антоном. Не выдумывать юридические формулировки.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+---
+
+<BaseLayout
+  title="Политика конфиденциальности — Мастерская"
+  description="Политика обработки персональных данных центра «Мастерская»."
+>
+  <SiteHeader slot="header" />
+
+  <section class="legal">
+    <div class="container legal__inner">
+      <h1>Политика конфиденциальности</h1>
+      <p>
+        Мы используем ваши данные только для того, чтобы ответить на заявку и
+        обсудить аренду. Мы не передаём их третьим лицам.
+      </p>
+      <p class="legal__todo">
+        Полный текст политики обработки персональных данных готовится.
+        {/* TODO M3: перенос реального текста (152-ФЗ), согласование с Антоном. */}
+      </p>
+      <p>
+        <a href="/arenda">Вернуться к заявке на аренду</a>
+      </p>
+    </div>
+  </section>
+
+  <SiteFooter slot="footer" />
+</BaseLayout>
+
+<style>
+  .legal {
+    padding-block: var(--space-5);
+  }
+  .legal__inner {
+    max-width: 44rem;
+  }
+  .legal__todo {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+</style>
+</content>

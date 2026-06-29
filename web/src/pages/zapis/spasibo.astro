@@ -1,0 +1,69 @@
+---
+/**
+ * /zapis/spasibo — «спасибо» после успешной записи на визит (PRG: POST→redirect→GET).
+ *
+ * Цель Метрики `visit_lead` фиксируется здесь (GET после успешной заявки) через
+ * компонент Metrika с пропом goal. prerender=false: страница в цепочке PRG после POST.
+ */
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import Button from '../../components/Button.astro';
+import Metrika from '../../components/Metrika.astro';
+---
+
+<BaseLayout
+  title="Заявка отправлена — Мастерская"
+  description="Спасибо, мы получили вашу заявку на визит и свяжемся с вами."
+>
+  <SiteHeader slot="header" />
+
+  <section class="thanks" aria-labelledby="thanks-title">
+    <div class="container thanks__inner">
+      <p class="overline">Запись на визит</p>
+      <h1 id="thanks-title">Заявка отправлена</h1>
+
+      <p class="thanks__lead">
+        Спасибо. Мы получили вашу заявку и скоро свяжемся, чтобы подтвердить место
+        и детали.
+      </p>
+
+      <p>
+        Мы напишем или позвоним по тому контакту, который вы оставили.
+        {/* TODO срок/канал: уточнить у Антона типовой срок ответа и основной канал. */}
+      </p>
+
+      <div class="thanks__actions">
+        <Button variant="primary" href="/raspisanie">Вернуться к расписанию</Button>
+        <Button variant="soft" href="/">На главную</Button>
+      </div>
+    </div>
+  </section>
+
+  <SiteFooter slot="footer" />
+
+  {/* Метрика + цель visit_lead — только здесь, в точке конверсии. */}
+  <Metrika goal="visit_lead" />
+</BaseLayout>
+
+<style>
+  .thanks {
+    padding-block: var(--space-5);
+  }
+  .thanks__inner {
+    max-width: 44rem;
+  }
+  .thanks__lead {
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  .thanks__actions {
+    margin-top: var(--space-4);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+</style>

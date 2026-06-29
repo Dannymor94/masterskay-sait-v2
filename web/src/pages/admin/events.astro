@@ -1,0 +1,75 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listHalls } from '../../server/halls.ts';
+import {
+  listEvents, createEvent, updateEvent, removeEvent, validateEvent,
+} from '../../server/events.ts';
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? 'save');
+  const id = String(form.get('id') ?? '').trim();
+  if (action === 'delete') { removeEvent(id); return Astro.redirect('/admin/events', 303); }
+  if (action === 'publish') { updateEvent(id, { is_published: true }); return Astro.redirect('/admin/events', 303); }
+  if (action === 'unpublish') { updateEvent(id, { is_published: false }); return Astro.redirect('/admin/events', 303); }
+
+  const cap = String(form.get('capacity') ?? '').trim();
+  const input = {
+    id,
+    slug: String(form.get('slug') ?? '').trim(),
+    title: String(form.get('title') ?? '').trim(),
+    datetime: String(form.get('datetime') ?? '').trim(),
+    hall_id: String(form.get('hall_id') ?? '').trim() || null,
+    capacity: cap === '' ? null : Number(cap),
+    description: String(form.get('description') ?? '').trim() || null,
+  };
+  const v = validateEvent(input);
+  if (!v.ok) error = Object.values(v.errors).join(' ');
+  else { createEvent(input); return Astro.redirect('/admin/events', 303); }
+}
+const events = listEvents();
+const halls = listHalls();
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="События" user={user}>
+  {error && <p class="err" role="alert">{error}</p>}
+  <table>
+    <thead><tr><th>slug</th><th>Название</th><th>Когда</th><th>Мест</th><th>Запис.</th><th>Статус</th><th></th></tr></thead>
+    <tbody>
+      {events.map((e) => (
+        <tr>
+          <td>{e.slug}</td><td>{e.title}</td><td>{e.datetime}</td>
+          <td>{e.capacity ?? '∞'}</td><td>{e.registered_count}</td>
+          <td>{e.is_published === 1 ? <span class="tag tag-pub">опубл.</span> : <span class="tag">черновик</span>}</td>
+          <td>
+            <form method="POST" class="inline">
+              <input type="hidden" name="_action" value={e.is_published === 1 ? 'unpublish' : 'publish'} />
+              <input type="hidden" name="id" value={e.id} />
+              <button class="btn btn-secondary" type="submit">{e.is_published === 1 ? 'Снять' : 'Опубликовать'}</button>
+            </form>
+            <form method="POST" class="inline">
+              <input type="hidden" name="_action" value="delete" />
+              <input type="hidden" name="id" value={e.id} />
+              <button class="btn btn-secondary" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h3>Создать / обновить событие</h3>
+  <form method="POST">
+    <label for="id">id (slug-подобный)</label><input id="id" name="id" required />
+    <label for="slug">slug</label><input id="slug" name="slug" required />
+    <label for="title">Название</label><input id="title" name="title" required />
+    <label for="datetime">Дата/время (ISO, напр. 2026-09-13T18:00:00.000Z)</label><input id="datetime" name="datetime" required />
+    <label for="hall_id">Зал</label>
+    <select id="hall_id" name="hall_id"><option value="">—</option>{halls.map((h) => <option value={h.id}>{h.name}</option>)}</select>
+    <label for="capacity">Вместимость (пусто = без лимита)</label><input id="capacity" name="capacity" type="number" />
+    <label for="description">Описание</label><textarea id="description" name="description" rows="2"></textarea>
+    <p><button class="btn" type="submit">Сохранить</button></p>
+  </form>
+</AdminLayout>

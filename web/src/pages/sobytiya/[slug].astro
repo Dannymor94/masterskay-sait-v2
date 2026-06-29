@@ -1,0 +1,129 @@
+---
+/**
+ * /sobytiya/<slug> — деталь события + форма регистрации (T2-3/T2-4, стадия M2).
+ *
+ * SSR (prerender=false): getEventBySlug. Только опубликованное (is_published=1);
+ * иначе 404. На каждый GET генерим idempotency_key+form_rendered_at ДО отправки.
+ * Свободные места = capacity - registered_count (если capacity задана); нет мест →
+ * форма не показывается (EventForm). Flash-cookie репопуляция/ошибки (паттерн M1).
+ *
+ * Цвета/шрифты — через var().
+ */
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import EventForm from '../../components/EventForm.astro';
+import { getEventBySlug } from '../../server/events.ts';
+
+const { slug } = Astro.params;
+const event = slug ? getEventBySlug(slug) : undefined;
+
+if (!event || event.is_published !== 1) {
+  return new Response('Событие не найдено', { status: 404 });
+}
+
+// Служебные поля формы: генерим при КАЖДОМ рендере GET (до отправки).
+const idempotencyKey = crypto.randomUUID();
+const formRenderedAt = new Date().toISOString();
+
+// Свободные места: число (capacity задана) или null (без ограничения).
+const seatsLeft =
+  event.capacity == null ? null : Math.max(0, event.capacity - event.registered_count);
+
+// Дата/время на русском (Europe/Moscow).
+const fmt = new Intl.DateTimeFormat('ru-RU', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Europe/Moscow',
+});
+const whenDate = new Date(event.datetime);
+const whenText = Number.isNaN(whenDate.getTime()) ? '' : fmt.format(whenDate);
+
+// Flash-cookie после серверной ошибки.
+let values: Record<string, string> = {};
+let errors: Record<string, string> = {};
+const flash = Astro.cookies.get('mst_flash');
+if (flash?.value) {
+  try {
+    const parsed = flash.json() as {
+      errors?: Record<string, string>;
+      values?: Record<string, string>;
+    };
+    if (parsed && typeof parsed === 'object') {
+      errors = parsed.errors ?? {};
+      values = parsed.values ?? {};
+    }
+  } catch {
+    // битый cookie — игнорируем
+  }
+  Astro.cookies.delete('mst_flash', { path: '/' });
+}
+---
+
+<BaseLayout
+  title={`${event.title} — Мастерская`}
+  description={event.description ?? 'Событие центра «Мастерская», Ростов-на-Дону.'}
+>
+  <SiteHeader slot="header" />
+
+  <article class="event">
+    <div class="container event__inner">
+      <header class="event__head">
+        <p class="overline">Событие</p>
+        <h1 class="event__title">{event.title}</h1>
+        {whenText && (
+          <p class="event__when">
+            <time datetime={event.datetime}>{whenText}</time>
+          </p>
+        )}
+      </header>
+
+      {event.description && <p class="event__desc">{event.description}</p>}
+    </div>
+  </article>
+
+  <EventForm
+    idempotencyKey={idempotencyKey}
+    formRenderedAt={formRenderedAt}
+    eventId={event.id}
+    eventSlug={event.slug}
+    seatsLeft={seatsLeft}
+    values={values}
+    errors={errors}
+  />
+
+  <SiteFooter slot="footer" />
+</BaseLayout>
+
+<style>
+  .event {
+    padding-block: var(--space-5) 0;
+  }
+  .event__inner {
+    max-width: 44rem;
+  }
+  .event__head {
+    margin-bottom: var(--space-3);
+  }
+  .event__title {
+    margin: var(--space-1) 0 var(--space-2);
+    color: var(--heading);
+  }
+  .event__when {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: capitalize;
+  }
+  .event__desc {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-lead);
+    color: var(--text);
+    line-height: 1.6;
+  }
+</style>

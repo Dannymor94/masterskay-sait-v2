@@ -1,0 +1,110 @@
+---
+/**
+ * ContentArticle.astro — презентационный блок контент-страницы (T2-3).
+ *
+ * Получает уже готовые данные из content_page (title, hero, html-тело из markdown)
+ * и рендерит семантическую статью: один <h1> = title, опциональный hero-image
+ * (с alt), тело — HTML из markdown (set:html; источник доверенный — заводит
+ * админ/копирайтер, см. lib/markdown.ts).
+ *
+ * Без хардкод-hex: все цвета/отступы/типографика — через var() из tokens.css.
+ * Hero ниже сгиба может lazy-грузиться; здесь hero — выше сгиба (первый экран
+ * раздела), поэтому без loading="lazy".
+ */
+interface Props {
+  title: string;
+  /** Готовый HTML тела (markdown уже преобразован renderMarkdown). */
+  bodyHtml: string;
+  heroImage?: string | null;
+}
+const { title, bodyHtml, heroImage = null } = Astro.props;
+---
+
+<article class="content-page">
+  <div class="container content-page__inner">
+    <header class="content-page__head">
+      <h1 class="content-page__title">{title}</h1>
+    </header>
+
+    {
+      heroImage && (
+        <img
+          class="content-page__hero"
+          src={heroImage}
+          alt={`Иллюстрация к разделу «${title}»`}
+          width="1200"
+          height="630"
+          decoding="async"
+        />
+      )
+    }
+
+    {/* Тело страницы: HTML из markdown (доверенный контент из БД). */}
+    <div class="content-page__body prose" set:html={bodyHtml} />
+  </div>
+</article>
+
+<style>
+  .content-page {
+    padding-block: var(--space-5);
+  }
+  .content-page__inner {
+    max-width: 44rem;
+  }
+  .content-page__head {
+    margin-bottom: var(--space-3);
+  }
+  .content-page__title {
+    margin: 0;
+    color: var(--heading);
+  }
+  .content-page__hero {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+  }
+
+  /* Типографика тела (markdown → html). Только токены. */
+  .prose {
+    color: var(--text);
+    line-height: 1.65;
+  }
+  .prose :global(h2) {
+    margin: var(--space-4) 0 var(--space-2);
+    font-family: var(--font-headings);
+    font-size: var(--text-h2);
+    color: var(--heading);
+  }
+  .prose :global(h3) {
+    margin: var(--space-3) 0 var(--space-1);
+    font-family: var(--font-headings);
+    font-size: var(--text-h3);
+    color: var(--heading);
+  }
+  .prose :global(p) {
+    margin: 0 0 var(--space-2);
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 0 0 var(--space-2);
+    padding-left: 1.4rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .prose :global(a) {
+    color: var(--link);
+  }
+  .prose :global(strong) {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .prose :global(blockquote) {
+    margin: var(--space-3) 0;
+    padding-left: var(--space-3);
+    border-left: 3px solid var(--accent-fill);
+    color: var(--text-muted);
+  }
+</style>

@@ -1,0 +1,166 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listHalls } from '../../server/halls.ts';
+import { listSpecialists } from '../../server/specialists.ts';
+import { listSlots, createSlot, removeSlot, validateSlot, type SlotKind, type CtaType } from '../../server/slots.ts';
+import {
+  detectConflicts, conflictSlots, confirmPublishConflict, publishSlot, unpublishSlot,
+} from '../../server/schedule.ts';
+
+const WD = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? 'save');
+  const id = String(form.get('id') ?? '').trim();
+
+  if (action === 'delete') { removeSlot(id); detectConflicts(); return Astro.redirect('/admin/slots', 303); }
+  if (action === 'publish') { publishSlot(id); return Astro.redirect('/admin/slots', 303); }
+  if (action === 'unpublish') { unpublishSlot(id); return Astro.redirect('/admin/slots', 303); }
+  if (action === 'confirm') {
+    // Ручное подтверждение публикации КОНФЛИКТНОГО слота (явный флаг).
+    confirmPublishConflict(id, form.get('confirm') === 'yes');
+    return Astro.redirect('/admin/slots', 303);
+  }
+
+  const input = {
+    id,
+    hall_id: String(form.get('hall_id') ?? '').trim(),
+    specialist_id: String(form.get('specialist_id') ?? '').trim() || null,
+    weekday: Number(form.get('weekday') ?? 0),
+    time_start: String(form.get('time_start') ?? '').trim(),
+    time_end: String(form.get('time_end') ?? '').trim(),
+    title: String(form.get('title') ?? '').trim() || null,
+    kind: (String(form.get('kind') ?? 'own').trim() || 'own') as SlotKind,
+    cta_type: String(form.get('cta_type') ?? '').trim() as CtaType,
+    external_url: String(form.get('external_url') ?? '').trim() || null,
+  };
+  const v = validateSlot(input);
+  if (!v.ok) error = Object.values(v.errors).join(' ');
+  else {
+    createSlot(input);
+    detectConflicts(); // пересчёт O1 после изменения
+    return Astro.redirect('/admin/slots', 303);
+  }
+}
+
+detectConflicts();
+const slots = listSlots();
+const conflicts = conflictSlots();
+const halls = listHalls();
+const specialists = listSpecialists();
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Расписание" user={user}>
+  {error && <p class="err" role="alert">{error}</p>}
+
+  {conflicts.length > 0 && (
+    <section aria-labelledby="conf-h">
+      <h3 id="conf-h">Конфликты (O1 — приоритет аренды)</h3>
+      <p class="muted">Эти «свои» слоты пересекаются с арендой и НЕ публикуются
+        автоматически. Опубликовать можно только вручную, подтвердив явно. После
+        подтверждения слот попадает в выдачу и остаётся (повторный рендер не снимет).</p>
+      <table>
+        <thead><tr><th>id</th><th>День</th><th>Время</th><th>Зал</th><th>Статус</th><th>Действие</th></tr></thead>
+        <tbody>
+          {conflicts.map((s) => (
+            <tr>
+              <td>{s.id}</td><td>{WD[s.weekday]}</td><td>{s.time_start}–{s.time_end}</td><td>{s.hall_id}</td>
+              <td>
+                {s.conflict_confirmed === 1
+                  ? <span class="tag tag-pub">подтверждён — опубликован</span>
+                  : <span class="tag tag-conflict">конфликт — ожидает подтверждения</span>}
+              </td>
+              <td>
+                {s.conflict_confirmed === 1 ? (
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="_action" value="confirm" />
+                    <input type="hidden" name="id" value={s.id} />
+                    <input type="hidden" name="confirm" value="no" />
+                    <button class="btn btn-secondary" type="submit">Снять публикацию</button>
+                  </form>
+                ) : (
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="_action" value="confirm" />
+                    <input type="hidden" name="id" value={s.id} />
+                    <input type="hidden" name="confirm" value="yes" />
+                    <button class="btn" type="submit">Подтвердить и опубликовать</button>
+                  </form>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )}
+
+  <h3>Все слоты</h3>
+  <table>
+    <thead><tr><th>id</th><th>День</th><th>Время</th><th>Зал</th><th>Тип</th><th>CTA</th><th>Статус</th><th></th></tr></thead>
+    <tbody>
+      {slots.map((s) => (
+        <tr>
+          <td>{s.id}</td><td>{WD[s.weekday]}</td><td>{s.time_start}–{s.time_end}</td>
+          <td>{s.hall_id}</td><td>{s.kind}</td>
+          <td>{s.cta_type}{s.cta_type === 'external' ? ` → ${s.external_url ?? ''}` : ''}</td>
+          <td>
+            {s.conflict_flag === 1 && s.conflict_confirmed === 1
+              ? <span class="tag tag-pub">конфликт — подтверждён</span>
+              : s.conflict_flag === 1
+                ? <span class="tag tag-conflict">конфликт — ожидает</span>
+                : null}
+            {s.is_published === 1 ? <span class="tag tag-pub">опубл.</span> : <span class="tag">черновик</span>}
+          </td>
+          <td>
+            {s.is_published === 1 ? (
+              <form method="POST" class="inline">
+                <input type="hidden" name="_action" value="unpublish" />
+                <input type="hidden" name="id" value={s.id} />
+                <button class="btn btn-secondary" type="submit">Снять</button>
+              </form>
+            ) : s.conflict_flag === 0 ? (
+              <form method="POST" class="inline">
+                <input type="hidden" name="_action" value="publish" />
+                <input type="hidden" name="id" value={s.id} />
+                <button class="btn" type="submit">Опубликовать</button>
+              </form>
+            ) : <span class="muted">см. конфликты</span>}
+            <form method="POST" class="inline">
+              <input type="hidden" name="_action" value="delete" />
+              <input type="hidden" name="id" value={s.id} />
+              <button class="btn btn-secondary" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h3>Создать / обновить слот</h3>
+  <form method="POST">
+    <label for="id">id (slug)</label><input id="id" name="id" required />
+    <label for="hall_id">Зал</label>
+    <select id="hall_id" name="hall_id" required>
+      {halls.map((h) => <option value={h.id}>{h.name}</option>)}
+    </select>
+    <label for="specialist_id">Специалист (необязательно)</label>
+    <select id="specialist_id" name="specialist_id">
+      <option value="">—</option>
+      {specialists.map((sp) => <option value={sp.id}>{sp.name}</option>)}
+    </select>
+    <label for="weekday">День недели (1=Пн … 7=Вс)</label>
+    <input id="weekday" name="weekday" type="number" min="1" max="7" required />
+    <label for="time_start">Начало (ЧЧ:ММ)</label><input id="time_start" name="time_start" placeholder="18:00" required />
+    <label for="time_end">Окончание (ЧЧ:ММ)</label><input id="time_end" name="time_end" placeholder="20:00" required />
+    <label for="title">Заголовок</label><input id="title" name="title" />
+    <label for="kind">Тип</label>
+    <select id="kind" name="kind"><option value="own">own (своё)</option><option value="arenda">arenda (аренда)</option></select>
+    <label for="cta_type">CTA</label>
+    <select id="cta_type" name="cta_type"><option value="booking">booking (запись)</option><option value="external">external (внешняя)</option></select>
+    <label for="external_url">external_url (для external)</label><input id="external_url" name="external_url" type="url" />
+    <p><button class="btn" type="submit">Сохранить</button></p>
+  </form>
+</AdminLayout>

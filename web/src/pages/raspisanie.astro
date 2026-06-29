@@ -1,0 +1,148 @@
+---
+/**
+ * /raspisanie — единое расписание (T2-2, стадия M2).
+ *
+ * Модель «два CTA на слот» (SPEC §3): booking → форма визита /zapis; external →
+ * к специалисту по внешней ссылке. Сетка по дням недели (пн..вс), внутри — слоты
+ * по времени, с залом, названием и специалистом.
+ *
+ * O1 (DECISIONS, docs/m2-contract.md): в frontmatter СНАЧАЛА вызываем
+ * detectConflicts() — он помечает пересекающиеся own-слоты (conflict_flag=1,
+ * is_published=0), снимая авто-публикацию у конфликта аренды/своего занятия.
+ * Затем берём ТОЛЬКО publishedSlots() (is_published=1). publishedForView —
+ * дополнительный гарант на уровне вёрстки. Конфликтный слот не появится в выдаче,
+ * пока админ вручную не подтвердит публикацию (confirmPublishConflict).
+ *
+ * SSR (prerender=false): расписание читается из БД на каждый запрос. Цвета/шрифты —
+ * через var() (ни одного хардкод-hex). Страница работает без JS (только ссылки/кнопки).
+ */
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import ScheduleSlotCard from '../components/ScheduleSlot.astro';
+import { publishedForView, groupByWeekday } from '../components/scheduleView.ts';
+
+import { detectConflicts, publishedSlots } from '../server/schedule.ts';
+import { listHalls } from '../server/halls.ts';
+import { listSpecialists } from '../server/specialists.ts';
+
+// --- O1: ПЕРЕД выборкой прогоняем детектор конфликтов. Он пометит конфликтные
+// own-слоты и снимет с них публикацию (is_published=0) — после этого они НЕ
+// попадут в publishedSlots(). Авто-публикации конфликта нет (только админ вручную).
+detectConflicts();
+
+// Только опубликованные слоты. publishedForView — повторный гарант (is_published=1).
+const slots = publishedForView(publishedSlots());
+
+// Справочники для имён зала/специалиста (без N+1: одним списком в Map).
+const hallNames = new Map(listHalls().map((h) => [h.id, h.name]));
+const specialistNames = new Map(listSpecialists().map((s) => [s.id, s.name]));
+
+const days = groupByWeekday(slots);
+const hasSlots = days.length > 0;
+---
+
+<BaseLayout
+  title="Расписание — Мастерская, Ростов-на-Дону"
+  description="Единое расписание центра «Мастерская»: занятия и практики по дням недели. Запишитесь на визит или перейдите к специалисту."
+>
+  <SiteHeader slot="header" />
+
+  <section class="schedule" aria-labelledby="schedule-title">
+    <div class="container">
+      <p class="overline">Центр практик «Мастерская»</p>
+      <h1 id="schedule-title">Расписание</h1>
+      <p class="lead">
+        Занятия и практики по дням недели. Где есть запись — кнопка «Записаться»;
+        где ведёт специалист по своей записи — ссылка «К специалисту».
+      </p>
+
+      {
+        hasSlots ? (
+          <div class="schedule__days">
+            {days.map((day) => (
+              <section class="day" aria-labelledby={`day-${day.weekday}`}>
+                <h2 id={`day-${day.weekday}`} class="day__title">
+                  {day.label}
+                </h2>
+                <ul class="day__list" role="list">
+                  {day.slots.map((slot) => (
+                    <li>
+                      <ScheduleSlotCard
+                        item={slot}
+                        hallName={hallNames.get(slot.hall_id) ?? 'Зал'}
+                        specialistName={
+                          slot.specialist_id
+                            ? (specialistNames.get(slot.specialist_id) ?? null)
+                            : null
+                        }
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <p class="schedule__empty" role="status">
+            Расписание обновляется. Загляните чуть позже — или напишите нам, и мы
+            подскажем ближайшие занятия.
+          </p>
+        )
+      }
+    </div>
+  </section>
+
+  <SiteFooter slot="footer" />
+</BaseLayout>
+
+<style>
+  .schedule {
+    padding-block: var(--space-5);
+  }
+  .schedule h1 {
+    margin: var(--space-1) 0 var(--space-2);
+  }
+  .schedule .lead {
+    margin-bottom: var(--space-4);
+  }
+
+  .schedule__days {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .day {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .day__title {
+    margin: 0;
+    padding-bottom: var(--space-1);
+    border-bottom: 2px solid var(--accent-fill);
+    color: var(--heading);
+  }
+  .day__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .schedule__empty {
+    margin: var(--space-3) 0;
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    font-size: var(--text-lead);
+    max-width: 52ch;
+  }
+</style>

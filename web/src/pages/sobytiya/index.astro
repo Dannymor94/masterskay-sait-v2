@@ -1,0 +1,162 @@
+---
+/**
+ * /sobytiya — список событий (T2-3, стадия M2).
+ *
+ * SSR (prerender=false): читаем listEvents(), показываем только опубликованные
+ * (is_published=1). Пустое состояние — «Скоро объявим». Каждое событие — карточка
+ * со ссылкой на деталь /sobytiya/<slug>. Цвета/шрифты — через var().
+ */
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import { listEvents } from '../../server/events.ts';
+
+const events = listEvents().filter((e) => e.is_published === 1);
+const hasEvents = events.length > 0;
+
+// Формат даты/времени на русском (Europe/Moscow — центр в Ростове-на-Дону).
+const fmt = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Europe/Moscow',
+});
+const when = (iso: string): string => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : fmt.format(d);
+};
+const seatsText = (capacity: number | null, registered: number): string | null => {
+  if (capacity == null) return null;
+  const left = Math.max(0, capacity - registered);
+  return left > 0 ? `Свободно мест: ${left}` : 'Мест нет';
+};
+---
+
+<BaseLayout
+  title="События — Мастерская, Ростов-на-Дону"
+  description="Ближайшие события центра «Мастерская»: чайные церемонии, медитации и встречи. Запишитесь заранее."
+>
+  <SiteHeader slot="header" />
+
+  <section class="events" aria-labelledby="events-title">
+    <div class="container">
+      <p class="overline">Центр практик «Мастерская»</p>
+      <h1 id="events-title">События</h1>
+      <p class="lead">
+        Чайные церемонии, медитации и встречи. На события удобнее записаться
+        заранее — мест бывает немного.
+      </p>
+
+      {
+        hasEvents ? (
+          <ul class="events__list" role="list">
+            {events.map((e) => {
+              const seats = seatsText(e.capacity, e.registered_count);
+              return (
+                <li class="events__item">
+                  <article class="event-card">
+                    <h2 class="event-card__title">
+                      <a href={`/sobytiya/${e.slug}`}>{e.title}</a>
+                    </h2>
+                    {when(e.datetime) && (
+                      <p class="event-card__when">
+                        <time datetime={e.datetime}>{when(e.datetime)}</time>
+                      </p>
+                    )}
+                    {e.description && <p class="event-card__desc">{e.description}</p>}
+                    {seats && <p class="event-card__seats">{seats}</p>}
+                    <p class="event-card__more">
+                      <a href={`/sobytiya/${e.slug}`}>Подробнее и запись →</a>
+                    </p>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p class="events__empty" role="status">
+            Скоро объявим ближайшие события. Загляните чуть позже — или напишите
+            нам, и мы расскажем, что планируется.
+          </p>
+        )
+      }
+    </div>
+  </section>
+
+  <SiteFooter slot="footer" />
+</BaseLayout>
+
+<style>
+  .events {
+    padding-block: var(--space-5);
+  }
+  .events h1 {
+    margin: var(--space-1) 0 var(--space-2);
+  }
+  .events .lead {
+    margin-bottom: var(--space-4);
+  }
+
+  .events__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  .event-card {
+    padding: var(--space-3);
+    background: var(--bg);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    border-radius: var(--radius-lg);
+    display: grid;
+    gap: 0.4rem;
+  }
+  .event-card__title {
+    margin: 0;
+    font-size: var(--text-h3);
+    color: var(--heading);
+  }
+  .event-card__title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .event-card__title a:hover {
+    color: var(--link);
+  }
+  .event-card__when {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .event-card__desc {
+    margin: 0;
+    color: var(--text-muted);
+  }
+  .event-card__seats {
+    margin: 0;
+    font-size: var(--text-small);
+    color: var(--text-muted);
+  }
+  .event-card__more {
+    margin: 0.2rem 0 0;
+  }
+  .event-card__more a {
+    color: var(--link);
+    font-weight: 600;
+  }
+
+  .events__empty {
+    margin: var(--space-3) 0;
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    font-size: var(--text-lead);
+    max-width: 52ch;
+  }
+</style>

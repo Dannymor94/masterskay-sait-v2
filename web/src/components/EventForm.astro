@@ -1,0 +1,418 @@
+---
+/**
+ * EventForm.astro — форма регистрации на событие (#zayavka на /sobytiya/<slug>).
+ * Паттерн M1.
+ *
+ * Инварианты (CLAUDE.md §1):
+ *  - Нативный POST: <form method="POST" action="/api/leads/event">. Работает БЕЗ JS.
+ *  - Служебные скрытые поля: idempotency_key (UUID при рендере ДО отправки),
+ *    form_rendered_at (ISO, антиспам), source_page, event_id (hidden).
+ *  - Honeypot company — aria-hidden, вне табордера.
+ *  - Чекбокс согласия + ссылка /privacy.
+ *  - Репопуляция/ошибки из flash-cookie.
+ *
+ * Поля контракта (leads.ts validateEventLead): name*, contact*, event_id(hidden),
+ * count(≥1)*, consent*. Если capacity задана — показываем оставшиеся места и
+ * ограничиваем count (max). Если мест нет (seatsLeft===0) — форма не рендерится,
+ * показываем честный текст.
+ *
+ * seatsLeft===null → вместимость не задана (мест без ограничения): max не ставим.
+ */
+interface Props {
+  idempotencyKey: string;
+  formRenderedAt: string;
+  /** id события (hidden event_id). */
+  eventId: string;
+  /** slug — для source_page и якоря возврата. */
+  eventSlug: string;
+  /** Оставшиеся места: число (capacity задана) или null (без ограничения). */
+  seatsLeft?: number | null;
+  values?: Record<string, string>;
+  errors?: Record<string, string>;
+}
+const {
+  idempotencyKey,
+  formRenderedAt,
+  eventId,
+  eventSlug,
+  seatsLeft = null,
+  values = {},
+  errors = {},
+} = Astro.props;
+
+const soldOut = seatsLeft !== null && seatsLeft <= 0;
+const sourcePage = `/sobytiya/${eventSlug}`;
+
+const val = (k: string): string => values[k] ?? '';
+const has = (k: string): boolean => Boolean(errors[k]);
+const errId = (k: string): string => `err-${k}`;
+const describedBy = (...ids: string[]): string | undefined => {
+  const list = ids.filter(Boolean);
+  return list.length ? list.join(' ') : undefined;
+};
+
+const countValue = val('count') || '1';
+
+const errorOrder = ['name', 'contact', 'count', 'consent', 'event_id', 'idempotency_key'];
+const errorEntries = errorOrder
+  .filter((k) => errors[k])
+  .map((k) => ({ field: k, msg: errors[k] }));
+const anchorFor: Record<string, string> = {
+  name: '#name',
+  contact: '#contact',
+  count: '#count',
+  consent: '#consent',
+  event_id: '#zayavka',
+  idempotency_key: '#zayavka',
+};
+const hasErrors = errorEntries.length > 0;
+---
+
+<section id="zayavka" class="apply" aria-labelledby="event-form-title">
+  <div class="container apply__inner">
+    <header class="apply__head">
+      <p class="overline">Регистрация</p>
+      <h2 id="event-form-title">Записаться на событие</h2>
+      {
+        seatsLeft !== null && !soldOut && (
+          <p class="apply__seats" role="status">
+            Свободных мест: {seatsLeft}
+          </p>
+        )
+      }
+    </header>
+
+    {
+      soldOut ? (
+        <p class="apply__soldout" role="status">
+          Мест на это событие пока не осталось. Если хотите — напишите нам, мы
+          подскажем, когда событие повторится или освободится место.
+        </p>
+      ) : (
+        <>
+          {hasErrors && (
+            <div
+              class="apply__summary"
+              role="alert"
+              tabindex="-1"
+              autofocus
+              aria-labelledby="event-summary-title"
+            >
+              <p id="event-summary-title" class="apply__summary-title">
+                Заявку пока не отправили — поправьте, пожалуйста, отмеченные поля:
+              </p>
+              <ul class="apply__summary-list">
+                {errorEntries.map((e) => (
+                  <li>
+                    <a href={anchorFor[e.field] ?? '#zayavka'}>{e.msg}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <form
+            class="apply__form"
+            method="POST"
+            action="/api/leads/event"
+            aria-describedby="event-privacy-note"
+          >
+            {/* Служебные скрытые поля. */}
+            <input type="hidden" name="idempotency_key" value={idempotencyKey} />
+            <input type="hidden" name="form_rendered_at" value={formRenderedAt} />
+            <input type="hidden" name="source_page" value={sourcePage} />
+            <input type="hidden" name="event_id" value={eventId} />
+
+            {/* Honeypot. */}
+            <div class="apply__hp" aria-hidden="true">
+              <label for="company">Не заполняйте это поле</label>
+              <input type="text" id="company" name="company" tabindex="-1" autocomplete="off" />
+            </div>
+
+            {/* 1. Имя */}
+            <div class="field">
+              <label class="field__label" for="name">
+                Как вас зовут <span class="field__req">(обязательно)</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                autocomplete="name"
+                placeholder="Например, Анна"
+                value={val('name')}
+                aria-invalid={has('name') ? 'true' : undefined}
+                aria-describedby={describedBy(has('name') ? errId('name') : '')}
+              />
+              {has('name') && <p class="field__error" id={errId('name')}>{errors.name}</p>}
+            </div>
+
+            {/* 2. Контакт */}
+            <div class="field">
+              <label class="field__label" for="contact">
+                Телефон или мессенджер <span class="field__req">(обязательно)</span>
+              </label>
+              <input
+                type="text"
+                id="contact"
+                name="contact"
+                required
+                autocomplete="tel"
+                placeholder="+7 … или @username"
+                value={val('contact')}
+                aria-invalid={has('contact') ? 'true' : undefined}
+                aria-describedby={describedBy('contact-hint', has('contact') ? errId('contact') : '')}
+              />
+              <p class="field__hint" id="contact-hint">
+                Телефон, Telegram или WhatsApp — как вам удобнее
+              </p>
+              {has('contact') && <p class="field__error" id={errId('contact')}>{errors.contact}</p>}
+            </div>
+
+            {/* 3. Количество мест */}
+            <div class="field">
+              <label class="field__label" for="count">
+                Сколько мест <span class="field__req">(обязательно)</span>
+              </label>
+              <input
+                type="number"
+                id="count"
+                name="count"
+                required
+                min="1"
+                max={seatsLeft !== null ? String(seatsLeft) : undefined}
+                step="1"
+                inputmode="numeric"
+                value={countValue}
+                aria-invalid={has('count') ? 'true' : undefined}
+                aria-describedby={describedBy('count-hint', has('count') ? errId('count') : '')}
+              />
+              <p class="field__hint" id="count-hint">
+                Если придёте с кем-то — укажите, сколько вас всего
+              </p>
+              {has('count') && <p class="field__error" id={errId('count')}>{errors.count}</p>}
+            </div>
+
+            {/* 4. Согласие */}
+            <div class="field field--consent">
+              <label class="consent">
+                <input
+                  type="checkbox"
+                  id="consent"
+                  name="consent"
+                  value="yes"
+                  required
+                  aria-invalid={has('consent') ? 'true' : undefined}
+                  aria-describedby={describedBy(has('consent') ? errId('consent') : '')}
+                />
+                <span>
+                  Я согласен(а) на
+                  <a href="/privacy">обработку персональных данных</a>
+                  <span class="field__req">(обязательно)</span>
+                </span>
+              </label>
+              {has('consent') && <p class="field__error" id={errId('consent')}>{errors.consent}</p>}
+            </div>
+
+            <div class="apply__submit">
+              <button type="submit" class="apply__btn">Записаться</button>
+              <p class="apply__privacy" id="event-privacy-note">
+                Мы не передаём ваши данные третьим лицам и используем их только чтобы
+                подтвердить запись.
+              </p>
+            </div>
+          </form>
+        </>
+      )
+    }
+  </div>
+</section>
+
+{
+  !soldOut && (
+    <script is:inline type="module" src="/js/visit-form.js" defer></script>
+  )
+}
+
+<style>
+  .apply {
+    padding-block: var(--space-5);
+  }
+  .apply__inner {
+    max-width: 44rem;
+  }
+  .apply__head {
+    margin-bottom: var(--space-4);
+  }
+  .apply__head h2 {
+    margin-bottom: var(--space-2);
+  }
+  .apply__seats {
+    margin: var(--space-1) 0 0;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .apply__soldout {
+    margin: var(--space-3) 0;
+    padding: var(--space-4);
+    background: var(--surface);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    max-width: 52ch;
+  }
+
+  .apply__summary {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    border: 2px solid var(--btn-bg);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--btn-bg) 6%, var(--bg));
+  }
+  .apply__summary:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .apply__summary-title {
+    margin: 0 0 var(--space-2);
+    font-weight: 700;
+    color: var(--text);
+  }
+  .apply__summary-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .apply__summary-list a {
+    color: var(--state-error);
+    text-decoration: underline;
+  }
+
+  .apply__form {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .apply__hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .field__label {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: var(--text);
+  }
+  .field__req {
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .field__hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .field__error {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--state-error);
+    line-height: 1.5;
+  }
+  .field__error::before {
+    content: '! ';
+  }
+  [aria-invalid='true'] {
+    border-color: var(--btn-bg) !important;
+  }
+
+  input[type='text'],
+  input[type='number'] {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.7rem 0.85rem;
+    line-height: 1.4;
+  }
+  input::placeholder {
+    color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  }
+  input:focus-visible {
+    border-color: var(--btn-bg);
+  }
+
+  .field--consent {
+    margin-top: var(--space-1);
+  }
+  .consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .consent input {
+    margin-top: 0.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--btn-bg);
+    flex: 0 0 auto;
+  }
+  .consent a {
+    color: var(--link);
+  }
+
+  .apply__submit {
+    margin-top: var(--space-2);
+    display: grid;
+    gap: var(--space-2);
+  }
+  .apply__btn {
+    justify-self: start;
+    font-family: var(--font-body);
+    font-size: var(--btn-font-size);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--btn-text);
+    background: var(--btn-bg);
+    border: 2px solid var(--btn-bg);
+    border-radius: var(--radius-md);
+    padding: 0.9rem 2rem;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+  }
+  .apply__btn:hover {
+    background: var(--btn-bg-hover);
+    border-color: var(--btn-bg-hover);
+  }
+  .apply__privacy {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 48ch;
+  }
+
+  @media (max-width: 30rem) {
+    .apply__btn {
+      justify-self: stretch;
+      text-align: center;
+    }
+  }
+</style>

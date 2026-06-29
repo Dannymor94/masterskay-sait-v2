@@ -1,0 +1,111 @@
+---
+/**
+ * Button.astro — кнопка/ссылка-действие по токенам.
+ * Варианты:
+ *  - primary   : заливка var(--btn-bg) (orange-deep) + белый текст. Главный CTA.
+ *  - secondary : контурная (рамка var(--btn-bg), текст var(--link)). Контекстный CTA.
+ *  - soft      : мягкая текстовая ссылка-CTA (текст var(--link), подчёркивание).
+ *
+ * Инварианты: оранжевый-заливка только фон/рамка, НЕ цвет основного текста;
+ * primary даёт белый текст на orange-deep (AA). Все цвета — через var().
+ * По умолчанию рендерится <a> (CTA ведут на якорь #zayavka). type="submit"
+ * → рендерится <button> (кнопка отправки формы).
+ */
+interface Props {
+  variant?: 'primary' | 'secondary' | 'soft';
+  href?: string;
+  type?: 'button' | 'submit';
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  variant = 'primary',
+  href,
+  type,
+  class: className = '',
+  ...rest
+} = Astro.props;
+
+const isButton = type === 'submit' || type === 'button';
+const classes = ['btn', `btn--${variant}`, className].filter(Boolean).join(' ');
+---
+
+{
+  isButton ? (
+    <button type={type} class={classes} {...rest}>
+      <slot />
+    </button>
+  ) : (
+    <a href={href} class={classes} {...rest}>
+      <slot />
+    </a>
+  )
+}
+
+<style>
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    font-family: var(--font-body);
+    font-size: var(--btn-font-size); /* ≥16px полужирный, общий токен (global.css) */
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1.6rem;
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease,
+      border-color 0.18s ease;
+  }
+
+  /* Первичный: заливка orange-deep + белый текст (AA на orange-deep). */
+  .btn--primary {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border-color: var(--btn-bg);
+  }
+  .btn--primary:hover {
+    background: var(--btn-bg-hover);
+    border-color: var(--btn-bg-hover);
+    color: var(--btn-text);
+  }
+
+  /* Вторичный (контекстный): контур, текст orange-deep (AA крупный/полужирный). */
+  .btn--secondary {
+    background: var(--bg);
+    color: var(--link);
+    border-color: var(--btn-bg);
+  }
+  .btn--secondary:hover {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border-color: var(--btn-bg);
+  }
+
+  /* Мягкий (поддерживающий): текстовая ссылка с подчёркиванием. */
+  .btn--soft {
+    background: transparent;
+    color: var(--link);
+    border-color: transparent;
+    padding-inline: 0;
+    text-decoration: underline;
+    text-underline-offset: 0.22em;
+    font-weight: 600;
+  }
+  .btn--soft:hover {
+    color: var(--btn-bg-hover);
+  }
+
+  @media (max-width: 30rem) {
+    /* На мобайле primary-кнопка тянется на ширину контейнера. */
+    .btn--primary {
+      width: 100%;
+    }
+  }
+</style>

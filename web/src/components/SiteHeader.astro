@@ -1,0 +1,359 @@
+---
+/**
+ * SiteHeader.astro — шапка сайта с навигацией.
+ *
+ * Логотип: бренд-бук требует ГОТОВЫЙ файл логотипа («дерево в круге» + слово
+ * «МАСТЕРСКАЯ»), перенабирать словесный знак нельзя. Файла логотипа в проекте
+ * пока нет (web/public/ без svg). Поэтому здесь — ВРЕМЕННЫЙ текстовый плейсхолдер
+ * логотипа с пометкой; frontend (T0-6) заменит его на <img src="/logo.svg">
+ * с охранным полем и минимальным размером (24px) из tokens.logo.
+ * TODO LOGO: подставить файл логотипа, убрать текстовый плейсхолдер.
+ *
+ * Навигация семантическая (<nav><ul>), мобайл — нативный <details> (без JS).
+ */
+/**
+ * Пункты ведут на реальные страницы (T2-3/T2-4):
+ *  - Направления → /napravleniya, Практики → /praktiki, Чайная → /chaynaya (content_page);
+ *  - Расписание → /raspisanie; «Ещё» — группа: Туры/Психолог/События.
+ * «Ещё» — нативный <details> disclosure (работает без JS) с вложенным списком.
+ */
+const nav = [
+  { label: 'Аренда', href: '/arenda', current: true },
+  { label: 'Расписание', href: '/raspisanie' },
+  { label: 'Направления', href: '/napravleniya' },
+  { label: 'Практики', href: '/praktiki' },
+  { label: 'Чайная', href: '/chaynaya' },
+  {
+    label: 'Ещё',
+    children: [
+      { label: 'Туры', href: '/tury' },
+      { label: 'Психолог', href: '/psiholog' },
+      { label: 'События', href: '/sobytiya' },
+    ],
+  },
+  { label: 'Контакты', href: '/kontakty' },
+];
+---
+
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="brand" href="/" aria-label="Мастерская — на главную">
+      {/* TODO LOGO: заменить на <img> готового логотипа (дерево в круге + знак). */}
+      <span class="brand__mark" aria-hidden="true"></span>
+      <span class="brand__word">Мастерская</span>
+    </a>
+
+    {/* Десктоп-навигация */}
+    <nav class="site-nav" aria-label="Основная навигация">
+      <ul class="site-nav__list">
+        {
+          nav.map((item) =>
+            item.children ? (
+              <li class="site-nav__more">
+                <details class="more">
+                  <summary class="site-nav__link more__summary">
+                    {item.label}
+                    <span class="more__caret" aria-hidden="true" />
+                  </summary>
+                  <ul class="more__panel" role="list">
+                    {item.children.map((c) => (
+                      <li>
+                        <a href={c.href}>{c.label}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </li>
+            ) : (
+              <li>
+                <a
+                  href={item.href}
+                  class="site-nav__link"
+                  aria-current={item.current ? 'page' : undefined}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ),
+          )
+        }
+      </ul>
+    </nav>
+
+    {/* Мобайл-навигация: нативный disclosure, работает без JS */}
+    <details class="mobile-nav">
+      <summary class="mobile-nav__toggle" aria-label="Открыть меню">
+        <span class="mobile-nav__bars" aria-hidden="true"></span>
+        <span class="mobile-nav__label">Меню</span>
+      </summary>
+      <nav class="mobile-nav__panel" aria-label="Меню">
+        <ul>
+          {
+            nav.map((item) =>
+              item.children ? (
+                <li class="mobile-nav__group">
+                  <span class="mobile-nav__group-label">{item.label}</span>
+                  <ul>
+                    {item.children.map((c) => (
+                      <li>
+                        <a href={c.href}>{c.label}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : (
+                <li>
+                  <a href={item.href} aria-current={item.current ? 'page' : undefined}>
+                    {item.label}
+                  </a>
+                </li>
+              ),
+            )
+          }
+        </ul>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+  }
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 4.25rem;
+  }
+
+  /* --- Логотип (временный текстовый плейсхолдер) --- */
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .brand__mark {
+    /* Знак-заглушка «дерево в круге»: круг = крона (orange-fill — допустимо
+       как заливка-знак), под ним ствол. Заменяется реальным логотипом. */
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--accent-fill);
+    position: relative;
+  }
+  .brand__mark::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -0.35rem;
+    width: 0.18rem;
+    height: 0.5rem;
+    background: var(--color-wood);
+    transform: translateX(-50%);
+    border-radius: 1px;
+  }
+  .brand__word {
+    font-family: var(--font-headings);
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--heading);
+    letter-spacing: 0.01em;
+  }
+
+  /* --- Десктоп-навигация --- */
+  .site-nav {
+    display: none;
+  }
+  .site-nav__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: clamp(0.75rem, 1.4vw, 1.4rem);
+  }
+  .site-nav__link {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0;
+    border-bottom: 2px solid transparent;
+  }
+  .site-nav__link:hover {
+    color: var(--link);
+  }
+  .site-nav__link[aria-current='page'] {
+    color: var(--link);
+    border-bottom-color: var(--accent-fill);
+  }
+
+  /* --- Мобайл-навигация (нативный details) --- */
+  .mobile-nav {
+    position: relative;
+  }
+  .mobile-nav__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+    padding: 0.5rem 0.25rem;
+  }
+  .mobile-nav__toggle::-webkit-details-marker {
+    display: none;
+  }
+  .mobile-nav__bars {
+    width: 1.25rem;
+    height: 2px;
+    background: var(--text);
+    position: relative;
+    display: inline-block;
+  }
+  .mobile-nav__bars::before,
+  .mobile-nav__bars::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 1.25rem;
+    height: 2px;
+    background: var(--text);
+  }
+  .mobile-nav__bars::before {
+    top: -0.4rem;
+  }
+  .mobile-nav__bars::after {
+    top: 0.4rem;
+  }
+  .mobile-nav__panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    min-width: 12rem;
+    background: var(--bg);
+    border: 1px solid color-mix(in srgb, var(--border) 28%, transparent);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--color-wood-darkest) 14%, transparent);
+    padding: var(--space-1);
+  }
+  .mobile-nav__panel ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .mobile-nav__panel a {
+    display: block;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .mobile-nav__panel a:hover {
+    background: var(--surface);
+    color: var(--link);
+  }
+  .mobile-nav__panel a[aria-current='page'] {
+    color: var(--link);
+  }
+
+  /* --- «Ещё»: группа в мобильном меню --- */
+  .mobile-nav__group {
+    padding: 0.35rem 0.75rem 0.25rem;
+  }
+  .mobile-nav__group-label {
+    display: block;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .mobile-nav__group ul {
+    list-style: none;
+    margin: 0.2rem 0 0;
+    padding: 0;
+  }
+
+  /* --- «Ещё»: десктоп-выпадашка (нативный <details>, без JS) --- */
+  .site-nav__more {
+    position: relative;
+  }
+  .more {
+    position: relative;
+  }
+  .more__summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .more__summary::-webkit-details-marker {
+    display: none;
+  }
+  .more__caret {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transform-origin: center;
+    margin-bottom: 0.15rem;
+  }
+  .more[open] .more__caret {
+    transform: rotate(-135deg);
+    margin-bottom: -0.1rem;
+  }
+  .more__panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    min-width: 11rem;
+    list-style: none;
+    margin: 0;
+    padding: var(--space-1);
+    background: var(--bg);
+    border: 1px solid color-mix(in srgb, var(--border) 28%, transparent);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--color-wood-darkest) 14%, transparent);
+    z-index: 60;
+  }
+  .more__panel a {
+    display: block;
+    padding: 0.55rem 0.7rem;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    text-decoration: none;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .more__panel a:hover {
+    background: var(--surface);
+    color: var(--link);
+  }
+
+  @media (min-width: 60rem) {
+    .site-nav {
+      display: block;
+    }
+    .mobile-nav {
+      display: none;
+    }
+  }
+</style>

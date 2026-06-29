@@ -1,0 +1,88 @@
+---
+/**
+ * /arenda/spasibo — страница «спасибо» (PRG: POST→redirect→GET после успеха формы).
+ *
+ * Тексты — из web/src/content/arenda.md (секция thanks). Подтверждение приёма +
+ * понятный следующий шаг. Срок/канал ответа пока без данных → обтекаемо + TODO.
+ *
+ * Цель Метрики `arenda_lead` фиксируется здесь (GET после успешной заявки) —
+ * через компонент Metrika с пропом goal. Счётчик ставит куки (152-ФЗ): баннер
+ * согласия + /privacy — долг M3 / решение Антона (см. Metrika.astro).
+ *
+ * prerender=false: страница в цепочке PRG после POST; держим её серверной, чтобы
+ * не было статической рассинхронизации с SSR-цепочкой формы.
+ */
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import Button from '../../components/Button.astro';
+import Metrika from '../../components/Metrika.astro';
+---
+
+<BaseLayout
+  title="Заявка отправлена — Мастерская"
+  description="Спасибо, мы получили вашу заявку на аренду зала и свяжемся с вами."
+>
+  <SiteHeader slot="header" />
+
+  <section class="thanks" aria-labelledby="thanks-title">
+    <div class="container thanks__inner">
+      <p class="overline">Заявка на аренду</p>
+      <h1 id="thanks-title">Заявка отправлена</h1>
+
+      <p class="thanks__lead">
+        Спасибо. Мы получили вашу заявку и уже смотрим, какие слоты вам подойдут.
+      </p>
+
+      <p>
+        Мы свяжемся с вами по тому контакту, который вы оставили, чтобы обсудить
+        зал, дни и условия.
+        {/* TODO срок/канал: уточнить у Антона типовой срок ответа («в течение
+            дня» / «в рабочее время») и основной канал связи. До этого — без
+            конкретного срока. */}
+      </p>
+
+      <p class="thanks__soft">
+        Если удобнее — можете написать нам сами, контакты есть в разделе
+        «Контакты».
+        {/* TODO срок/канал: при желании заменить на прямую ссылку/контакт. */}
+      </p>
+
+      <div class="thanks__actions">
+        <Button variant="primary" href="/arenda">Вернуться на лендинг аренды</Button>
+        <Button variant="soft" href="/">На главную</Button>
+      </div>
+    </div>
+  </section>
+
+  <SiteFooter slot="footer" />
+
+  {/* Метрика + цель arenda_lead (после init). Только здесь, в точке конверсии. */}
+  <Metrika goal="arenda_lead" />
+</BaseLayout>
+
+<style>
+  .thanks {
+    padding-block: var(--space-5);
+  }
+  .thanks__inner {
+    max-width: 44rem;
+  }
+  .thanks__lead {
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  .thanks__soft {
+    color: var(--text-muted);
+  }
+  .thanks__actions {
+    margin-top: var(--space-4);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+</style>
+</content>

@@ -1,0 +1,58 @@
+---
+/**
+ * CtaBand.astro — повтор первичного CTA после FAQ (SPEC §2, IA §6). Дублирует
+ * единственный первичный CTA «Закрепить за собой слот» → #zayavka.
+ * Тёмный венге-фон (var(--color-wood-dark)) для контраста-«дожатия»; на нём
+ * светлый заголовок (AA) и primary-кнопка (orange-deep + белый).
+ *
+ * Это НЕ нарушает «один первичный CTA выше сгиба»: повтор стоит ниже всех секций.
+ * Тексты — дословно из arenda.md (cta-footer).
+ */
+import Button from './Button.astro';
+---
+
+<section class="ctaband" aria-labelledby="ctaband-title">
+  <div class="container ctaband__inner">
+    <p id="ctaband-title" class="ctaband__text">
+      Хорошее место для практики не стоит пустым. Закрепите свой день, пока он
+      свободен.
+    </p>
+    <div class="ctaband__action">
+      <Button variant="primary" href="#zayavka">Закрепить за собой слот</Button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .ctaband {
+    background: var(--color-wood-dark);
+  }
+  .ctaband__inner {
+    display: grid;
+    gap: var(--space-3);
+    align-items: center;
+    padding-block: var(--space-5);
+  }
+  .ctaband__text {
+    margin: 0;
+    font-family: var(--font-headings);
+    font-weight: 300;
+    font-size: var(--text-lead);
+    line-height: var(--leading-lead);
+    color: var(--color-white);
+    max-width: 40ch;
+  }
+  .ctaband__action {
+    justify-self: start;
+  }
+
+  @media (min-width: 52rem) {
+    .ctaband__inner {
+      grid-template-columns: 1fr auto;
+      gap: var(--space-4);
+    }
+    .ctaband__action {
+      justify-self: end;
+    }
+  }
+</style>

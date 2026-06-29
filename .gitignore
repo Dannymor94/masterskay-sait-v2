@@ -1,0 +1,36 @@
+# Зависимости
+node_modules/
+.pnp/
+.pnp.js
+
+# Сборка
+dist/
+.astro/
+.output/
+build/
+
+# БД (SQLite) — не коммитим данные
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+web/db/*.db
+
+# Секреты — пароль админки, ключи. Заводит ЧЕЛОВЕК, в репо НЕ попадает.
+.env
+.env.*
+!.env.example
+
+# Локальное окружение
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Claude Code — сессионные данные, не для репо
+.claude/
+
+# Фото-исходники (тяжёлые), если складываются локально до оптимизации
+web/public/img/_raw/

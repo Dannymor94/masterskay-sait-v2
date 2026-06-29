@@ -1,0 +1,56 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import {
+  listContent, createContent, removeContent, validateContent,
+} from '../../server/content.ts';
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (String(form.get('_action') ?? '') === 'delete') {
+    removeContent(String(form.get('slug') ?? ''));
+    return Astro.redirect('/admin/content', 303);
+  }
+  const input = {
+    slug: String(form.get('slug') ?? '').trim(),
+    title: String(form.get('title') ?? '').trim(),
+    body: String(form.get('body') ?? ''),
+    meta_description: String(form.get('meta_description') ?? '').trim() || null,
+  };
+  const v = validateContent(input);
+  if (!v.ok) error = Object.values(v.errors).join(' ');
+  else { createContent(input); return Astro.redirect('/admin/content', 303); }
+}
+const pages = listContent();
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Контент" user={user}>
+  {error && <p class="err" role="alert">{error}</p>}
+  <table>
+    <thead><tr><th>slug</th><th>Заголовок</th><th>Обновлено</th><th></th></tr></thead>
+    <tbody>
+      {pages.map((p) => (
+        <tr>
+          <td>{p.slug}</td><td>{p.title}</td><td class="muted">{p.updated_at}</td>
+          <td>
+            <form method="POST" class="inline">
+              <input type="hidden" name="_action" value="delete" />
+              <input type="hidden" name="slug" value={p.slug} />
+              <button class="btn btn-secondary" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h3>Создать / обновить страницу</h3>
+  <form method="POST">
+    <label for="slug">slug (напр. chaynaya)</label><input id="slug" name="slug" required />
+    <label for="title">Заголовок</label><input id="title" name="title" required />
+    <label for="meta_description">meta description</label><input id="meta_description" name="meta_description" />
+    <label for="body">Тело (markdown)</label><textarea id="body" name="body" rows="8"></textarea>
+    <p><button class="btn" type="submit">Сохранить</button></p>
+  </form>
+</AdminLayout>

@@ -1,0 +1,95 @@
+---
+/**
+ * /arenda — лендинг аренды залов. Герой проекта (Gate M0/M1).
+ * Собирает блоки строго в порядке IA (docs/arenda-ia.md §1):
+ *   1 Hero (#hero) → 2 Залы (#zaly) → 3 Почему (#pochemu) →
+ *   4 Доступность (#dostupnost) → 5 Резиденты (#rezidenty) →
+ *   6 Форма (#zayavka) → 7 FAQ (#faq) → повтор CTA → форма.
+ *
+ * M1 (SSR): страница серверная (prerender=false), потому что форма заявки:
+ *  - генерит idempotency_key (UUID) и form_rendered_at (ISO) при КАЖДОМ GET формы
+ *    (CLAUDE.md §1: ключ генерится при рендере ДО отправки; повтор ключа = тот же лид);
+ *  - читает flash-cookie mst_flash после серверной ошибки валидации и восстанавливает
+ *    введённые значения + показывает ошибки у полей и сводку (docs/m1-leads-contract.md §3);
+ *  - предвыбирает зал из ?hall=<slug> (предзаполнение из карточки) серверно, без JS.
+ *
+ * Все цвета/шрифты/размеры — через var() из tokens.css (ни одного хардкод-hex).
+ * Форма — нативная, работает без JS; прогрессивный JS подключается отдельно (T1-5).
+ */
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import Hero from '../components/Hero.astro';
+import HallsSection from '../components/HallsSection.astro';
+import WhySection from '../components/WhySection.astro';
+import AvailabilityPlaceholder from '../components/AvailabilityPlaceholder.astro';
+import ResidentsPlaceholder from '../components/ResidentsPlaceholder.astro';
+import ArendaForm from '../components/ArendaForm.astro';
+import Faq from '../components/Faq.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Metrika from '../components/Metrika.astro';
+
+// --- Служебные поля формы: генерим при КАЖДОМ рендере GET /arenda (до отправки).
+const idempotencyKey = crypto.randomUUID();
+const formRenderedAt = new Date().toISOString();
+
+// --- Предзаполнение зала из ?hall=<slug>. Допустимые слаги — из карточек залов.
+const HALL_SLUGS = new Set(['big-70', 'small-30', 'tea-45']);
+const hallParam = Astro.url.searchParams.get('hall') ?? '';
+const preselectHall = HALL_SLUGS.has(hallParam) ? hallParam : '';
+// cta_origin — для аналитики: какой CTA/карточка привёл (= slug зала, если валиден).
+const ctaOrigin = preselectHall;
+
+// --- Flash-cookie после серверной ошибки валидации (формат {errors, values}).
+// Читаем, парсим, затем ГАСИМ cookie (одноразовое сообщение).
+let values: Record<string, string> = {};
+let errors: Record<string, string> = {};
+const flash = Astro.cookies.get('mst_flash');
+if (flash?.value) {
+  try {
+    const parsed = flash.json() as {
+      errors?: Record<string, string>;
+      values?: Record<string, string>;
+    };
+    if (parsed && typeof parsed === 'object') {
+      errors = parsed.errors ?? {};
+      values = parsed.values ?? {};
+    }
+  } catch {
+    // битый cookie — игнорируем, показываем чистую форму
+  }
+  // Гасим cookie сразу после прочтения (одноразовый flash).
+  Astro.cookies.delete('mst_flash', { path: '/' });
+}
+---
+
+<BaseLayout
+  title="Аренда залов для практики — Мастерская, Ростов-на-Дону"
+  description="Тёплые залы для регулярной практики: массаж, психология, телесные практики. Закрепите за собой постоянный слот в центре «Мастерская»."
+>
+  <SiteHeader slot="header" />
+
+  <Hero />
+  <HallsSection />
+  <WhySection />
+  <AvailabilityPlaceholder />
+  <ResidentsPlaceholder />
+  <ArendaForm
+    idempotencyKey={idempotencyKey}
+    formRenderedAt={formRenderedAt}
+    ctaOrigin={ctaOrigin}
+    preselectHall={preselectHall}
+    values={values}
+    errors={errors}
+  />
+  <Faq />
+  <CtaBand />
+
+  <SiteFooter slot="footer" />
+
+  {/* Метрика на лендинге (точка входа конверсии). Цель срабатывает на /spasibo. */}
+  <Metrika />
+</BaseLayout>
+</content>

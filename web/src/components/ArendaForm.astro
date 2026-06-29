@@ -1,0 +1,618 @@
+---
+/**
+ * ArendaForm.astro — форма заявки на аренду (#zayavka). Главная конверсия.
+ *
+ * Инварианты (CLAUDE.md §1, IA §5):
+ *  - Нативный POST: <form method="POST" action="/api/leads/arenda">. Работает БЕЗ JS.
+ *    enctype по умолчанию application/x-www-form-urlencoded (не переопределяем).
+ *  - Семантика и a11y: <label for> у каждого поля; обязательность текстом (не только
+ *    цветом); подсказки/ошибки через aria-describedby; вся форма с клавиатуры.
+ *  - Служебные скрытые поля: idempotency_key (UUID, генерится при рендере /arenda ДО
+ *    отправки), form_rendered_at (ISO, время-на-форме), source_page=/arenda, cta_origin.
+ *    Значения приходят пропсами из /arenda.astro (SSR).
+ *  - Honeypot company — поле-ловушка: aria-hidden, вне табордера (tabindex=-1),
+ *    визуально скрыто; реальный пользователь его не видит и не заполняет.
+ *  - Чекбокс согласия + ссылка на /privacy.
+ *  - Репопуляция и ошибки: после серверной ошибки (flash-cookie) /arenda.astro
+ *    передаёт values/errors — восстанавливаем введённое и показываем сообщения
+ *    у полей + сводку вверху со ссылками-якорями.
+ *
+ * Логика дедупа/валидации — на бэке (web/src/server, эндпоинт). Здесь — ВЁРСТКА.
+ * Тексты подписей/подсказок/ошибок — дословно из arenda.md (zayavka).
+ */
+interface Props {
+  /** UUID, сгенерён при рендере /arenda (SSR), ДО отправки. = lead.id. */
+  idempotencyKey: string;
+  /** ISO-таймстемп рендера формы (антиспам: слишком быстрая отправка = бот). */
+  formRenderedAt: string;
+  /** Источник CTA (например, slug зала из ?hall=). Опц. */
+  ctaOrigin?: string;
+  /** Предвыбранный зал из ?hall=<slug> (серверно, без JS). */
+  preselectHall?: string;
+  /** Восстановленные значения после серверной ошибки (flash-cookie). */
+  values?: Record<string, string>;
+  /** Сообщения об ошибках по полям после серверной ошибки (flash-cookie). */
+  errors?: Record<string, string>;
+}
+const {
+  idempotencyKey,
+  formRenderedAt,
+  ctaOrigin = '',
+  preselectHall = '',
+  values = {},
+  errors = {},
+} = Astro.props;
+
+const activities = [
+  'Массаж',
+  'Психолог',
+  'Телесные практики',
+  'Коворкинг',
+  'Другое',
+]; // TODO уточнить у Антона финальный перечень (IA вопрос №5)
+
+const halls = [
+  { value: 'big-70', label: 'Большой, 70 м²' },
+  { value: 'small-30', label: 'Малый, 30 м²' },
+  { value: 'tea-45', label: 'Чайный, 45 м²' },
+  { value: 'none', label: 'Пока не выбрал(а)' },
+];
+
+// --- Хелперы репопуляции ----------------------------------------------------
+const val = (k: string): string => values[k] ?? '';
+const has = (k: string): boolean => Boolean(errors[k]);
+// id для текста ошибки поля (связываем через aria-describedby)
+const errId = (k: string): string => `err-${k}`;
+// собрать значение aria-describedby: подсказка(и) + ошибка, если есть
+const describedBy = (...ids: string[]): string | undefined => {
+  const list = ids.filter(Boolean);
+  return list.length ? list.join(' ') : undefined;
+};
+
+// Выбранный зал: при ошибке — из values, иначе предвыбор из ?hall=, иначе none.
+const selectedHall = val('hall') || preselectHall || 'none';
+// Формат: из values, иначе regular по умолчанию.
+const selectedFormat = val('format') || 'regular';
+// Согласие НЕ восстанавливаем по соображениям приватности/закона (галочку ставит
+// пользователь заново). consent в values может прийти, но осознанно не проставляем.
+
+// Список ошибок для сводки (порядок полей сверху вниз для предсказуемости фокуса)
+const errorOrder = [
+  'name',
+  'contact',
+  'activity',
+  'activity_other',
+  'format',
+  'schedule',
+  'consent',
+  'idempotency_key',
+];
+const errorEntries = errorOrder
+  .filter((k) => errors[k])
+  .map((k) => ({ field: k, msg: errors[k] }));
+const anchorFor: Record<string, string> = {
+  name: '#name',
+  contact: '#contact',
+  activity: '#activity',
+  activity_other: '#activity-other',
+  format: '#format-regular',
+  schedule: '#schedule',
+  consent: '#consent',
+  idempotency_key: '#zayavka',
+};
+const hasErrors = errorEntries.length > 0;
+---
+
+<section id="zayavka" class="apply" aria-labelledby="apply-title">
+  <div class="container apply__inner">
+    <header class="apply__head">
+      <p class="overline">Заявка</p>
+      <h2 id="apply-title">Заявка на аренду</h2>
+      <p class="lead">
+        Расскажите коротко о себе и о том, как вам удобно вести. Мы посмотрим
+        свободные слоты и свяжемся с вами, чтобы обсудить детали. Это заявка, не
+        бронь, — ни к чему не обязывает.
+      </p>
+    </header>
+
+    {/* --- Сводка ошибок (без JS, после серверной проверки). Фокус через
+          autofocus — браузер сам проскроллит к ней. Ссылки-якоря на поля. --- */}
+    {
+      hasErrors && (
+        <div
+          class="apply__summary"
+          role="alert"
+          tabindex="-1"
+          autofocus
+          aria-labelledby="apply-summary-title"
+        >
+          <p id="apply-summary-title" class="apply__summary-title">
+            Заявку пока не отправили — поправьте, пожалуйста, отмеченные поля:
+          </p>
+          <ul class="apply__summary-list">
+            {errorEntries.map((e) => (
+              <li>
+                <a href={anchorFor[e.field] ?? '#zayavka'}>{e.msg}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    <form
+      class="apply__form"
+      method="POST"
+      action="/api/leads/arenda"
+      aria-describedby="apply-privacy-note"
+    >
+      {/* --- Служебные скрытые поля (значения из SSR /arenda.astro) --- */}
+      {/* idempotency_key: UUID, генерится при РЕНДЕРЕ формы ДО отправки (CLAUDE.md §1). */}
+      <input type="hidden" name="idempotency_key" value={idempotencyKey} />
+      {/* form_rendered_at: ISO-таймстемп рендера для антиспама (быстрая отправка = бот). */}
+      <input type="hidden" name="form_rendered_at" value={formRenderedAt} />
+      {/* source_page: всегда /arenda (lead.source_page). */}
+      <input type="hidden" name="source_page" value="/arenda" />
+      {/* cta_origin: какой CTA/карточка привёл (из ?hall=). */}
+      <input type="hidden" name="cta_origin" value={ctaOrigin} />
+
+      {/* --- Honeypot: поле-ловушка. aria-hidden + вне табордера + визуально скрыто.
+            Реальный пользователь не видит и не заполняет; заполненное = бот. --- */}
+      <div class="apply__hp" aria-hidden="true">
+        <label for="company">Не заполняйте это поле</label>
+        <input
+          type="text"
+          id="company"
+          name="company"
+          tabindex="-1"
+          autocomplete="off"
+        />
+      </div>
+
+      {/* --- 1. Имя (обязательно) --- */}
+      <div class="field">
+        <label class="field__label" for="name">
+          Как вас зовут <span class="field__req">(обязательно)</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          autocomplete="name"
+          placeholder="Например, Анна"
+          value={val('name')}
+          aria-invalid={has('name') ? 'true' : undefined}
+          aria-describedby={describedBy(has('name') ? errId('name') : '')}
+        />
+        {has('name') && <p class="field__error" id={errId('name')}>{errors.name}</p>}
+      </div>
+
+      {/* --- 2. Контакт (обязательно) --- */}
+      <div class="field">
+        <label class="field__label" for="contact">
+          Телефон или мессенджер <span class="field__req">(обязательно)</span>
+        </label>
+        <input
+          type="text"
+          id="contact"
+          name="contact"
+          required
+          autocomplete="tel"
+          placeholder="+7 … или @username"
+          value={val('contact')}
+          aria-invalid={has('contact') ? 'true' : undefined}
+          aria-describedby={describedBy('contact-hint', has('contact') ? errId('contact') : '')}
+        />
+        <p class="field__hint" id="contact-hint">
+          Телефон, Telegram или WhatsApp — как вам удобнее
+        </p>
+        {has('contact') && <p class="field__error" id={errId('contact')}>{errors.contact}</p>}
+      </div>
+
+      {/* --- 3. Вид деятельности (обязательно, select + «другое») --- */}
+      <div class="field">
+        <label class="field__label" for="activity">
+          Чем вы занимаетесь <span class="field__req">(обязательно)</span>
+        </label>
+        <select
+          id="activity"
+          name="activity"
+          required
+          aria-invalid={has('activity') ? 'true' : undefined}
+          aria-describedby={describedBy('activity-hint', has('activity') ? errId('activity') : '')}
+        >
+          <option value="" disabled selected={!val('activity')}>Выберите вариант</option>
+          {activities.map((a) => (
+            <option value={a} selected={val('activity') === a}>{a}</option>
+          ))}
+        </select>
+        <p class="field__hint" id="activity-hint">
+          Так мы поймём, какой зал вам подойдёт
+        </p>
+        {has('activity') && <p class="field__error" id={errId('activity')}>{errors.activity}</p>}
+
+        {/* Поле для «Другое». Без JS оно видно всегда; с JS frontend (T1-5) покажет
+            его только при выборе «Другое». Подпись и подсказка — из arenda.md.
+            Обёртка с data-other-field — точка управления видимостью для JS. */}
+        <div class="field__other" data-other-field>
+          <label class="field__label field__label--sub" for="activity-other">
+            Если «Другое» — напишите коротко, чем
+          </label>
+          <input
+            type="text"
+            id="activity-other"
+            name="activity_other"
+            placeholder="Например: арт-терапия, вокал, йогатерапия"
+            value={val('activity_other')}
+            aria-invalid={has('activity_other') ? 'true' : undefined}
+            aria-describedby={describedBy(has('activity_other') ? errId('activity_other') : '')}
+          />
+          {has('activity_other') && (
+            <p class="field__error" id={errId('activity_other')}>{errors.activity_other}</p>
+          )}
+        </div>
+      </div>
+
+      {/* --- 4. Желаемый зал (необязательно; предвыбор из ?hall= серверно) --- */}
+      <fieldset class="field field--group">
+        <legend class="field__label">Какой зал</legend>
+        <p class="field__hint" id="hall-hint">
+          Можно не выбирать — поможем определиться
+        </p>
+        <div class="radio-row" aria-describedby="hall-hint">
+          {
+            halls.map((h) => (
+              <label class="radio">
+                <input
+                  type="radio"
+                  name="hall"
+                  value={h.value}
+                  checked={selectedHall === h.value}
+                />
+                <span>{h.label}</span>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+
+      {/* --- 5. Формат аренды (обязательно; «Регулярная» предвыбрано) --- */}
+      <fieldset class="field field--group">
+        <legend class="field__label">
+          Формат аренды <span class="field__req">(обязательно)</span>
+        </legend>
+        <div class="radio-row">
+          <label class="radio">
+            <input
+              type="radio"
+              id="format-regular"
+              name="format"
+              value="regular"
+              checked={selectedFormat === 'regular'}
+              required
+            />
+            <span>Регулярная — постоянный слот каждую неделю</span>
+          </label>
+          <label class="radio">
+            <input
+              type="radio"
+              name="format"
+              value="onetime"
+              checked={selectedFormat === 'onetime'}
+            />
+            <span>Разовая — один раз или время от времени</span>
+          </label>
+        </div>
+        {has('format') && <p class="field__error" id={errId('format')}>{errors.format}</p>}
+      </fieldset>
+
+      {/* --- 6. Регулярность (обязательно при «Регулярная») --- */}
+      <div class="field">
+        <label class="field__label" for="schedule">
+          Какие дни и время <span class="field__req">(если регулярная)</span>
+        </label>
+        <textarea
+          id="schedule"
+          name="schedule"
+          rows="2"
+          placeholder="Дни недели и время, которые вам удобны"
+          aria-invalid={has('schedule') ? 'true' : undefined}
+          aria-describedby={describedBy('schedule-hint', has('schedule') ? errId('schedule') : '')}
+          >{val('schedule')}</textarea>
+        <p class="field__hint" id="schedule-hint">
+          Например: вторник и четверг, 18:00–21:00
+        </p>
+        {has('schedule') && <p class="field__error" id={errId('schedule')}>{errors.schedule}</p>}
+      </div>
+
+      {/* --- 7. Желаемый старт (необязательно) --- */}
+      <div class="field">
+        <label class="field__label" for="start">Когда хотели бы начать</label>
+        <input
+          type="text"
+          id="start"
+          name="start"
+          placeholder="Например, с сентября"
+          value={val('start')}
+          aria-describedby="start-hint"
+        />
+        <p class="field__hint" id="start-hint">
+          Месяц или примерная дата — точную согласуем
+        </p>
+      </div>
+
+      {/* --- 8. Комментарий (необязательно) --- */}
+      <div class="field">
+        <label class="field__label" for="comment">Что важно учесть</label>
+        <textarea
+          id="comment"
+          name="comment"
+          rows="3"
+          placeholder="Здесь можно написать что угодно"
+          aria-describedby="comment-hint">{val('comment')}</textarea>
+        <p class="field__hint" id="comment-hint">
+          Оборудование, число клиентов или любой вопрос
+        </p>
+      </div>
+
+      {/* --- 9. Согласие (обязательно, checkbox) --- */}
+      <div class="field field--consent">
+        <label class="consent">
+          <input
+            type="checkbox"
+            id="consent"
+            name="consent"
+            value="yes"
+            required
+            aria-invalid={has('consent') ? 'true' : undefined}
+            aria-describedby={describedBy(has('consent') ? errId('consent') : '')}
+          />
+          <span>
+            Я согласен(а) на
+            <a href="/privacy">обработку персональных данных</a>
+            <span class="field__req">(обязательно)</span>
+          </span>
+        </label>
+        {has('consent') && <p class="field__error" id={errId('consent')}>{errors.consent}</p>}
+      </div>
+
+      {/* --- Отправка --- */}
+      <div class="apply__submit">
+        <button type="submit" class="apply__btn">Отправить заявку</button>
+        <p class="apply__privacy" id="apply-privacy-note">
+          Мы не передаём ваши данные третьим лицам и используем их только чтобы
+          ответить на заявку.
+        </p>
+      </div>
+    </form>
+  </div>
+</section>
+
+{/* Прогрессивное улучшение формы: мягкая валидация + показ поля «Другое».
+    Статический модуль из public/ (defer), грузится отложенно и НЕ требуется
+    для работы формы — нативный POST остаётся рабочим даже если скрипт не загрузился
+    или упал. is:inline — чтобы Astro не пытался бандлить/выкидывать его на SSR-странице
+    (page-level hoisted scripts на prerender=false ненадёжны). */}
+<script is:inline type="module" src="/js/arenda-form.js" defer></script>
+
+<style>
+  .apply {
+    padding-block: var(--space-5);
+  }
+  .apply__inner {
+    max-width: 44rem;
+  }
+  .apply__head {
+    margin-bottom: var(--space-4);
+  }
+  .apply__head h2 {
+    margin-bottom: var(--space-2);
+  }
+
+  /* Сводка ошибок вверху формы */
+  .apply__summary {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    border: 2px solid var(--btn-bg);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--btn-bg) 6%, var(--bg));
+  }
+  .apply__summary:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .apply__summary-title {
+    margin: 0 0 var(--space-2);
+    font-weight: 700;
+    color: var(--text);
+  }
+  .apply__summary-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .apply__summary-list a {
+    color: var(--state-error);
+    text-decoration: underline;
+  }
+
+  .apply__form {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  /* Honeypot — полностью скрыт, вне потока, недоступен с клавиатуры/скринридера */
+  .apply__hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .field--group {
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .field__label {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: var(--text);
+  }
+  .field__label--sub {
+    margin-top: 0.4rem;
+    font-weight: 400;
+    font-size: 0.92rem;
+    color: var(--text-muted);
+  }
+  .field__req {
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .field__hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  /* Сообщение об ошибке у поля — текстом (не только цветом): «!» + сообщение. */
+  .field__error {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--state-error);
+    line-height: 1.5;
+  }
+  .field__error::before {
+    content: '! ';
+  }
+  /* Подсветка ошибочного поля рамкой (в дополнение к тексту) */
+  [aria-invalid='true'] {
+    border-color: var(--btn-bg) !important;
+  }
+
+  /* Поля ввода */
+  input[type='text'],
+  input[type='tel'],
+  select,
+  textarea {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.7rem 0.85rem;
+    line-height: 1.4;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 3rem;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    border-color: var(--btn-bg);
+  }
+
+  /* Поле «activity_other»: обёртка-grid; скрытие управляет ТОЛЬКО прогрессивный
+     JS (через атрибут hidden). Без JS поле видно всегда (это ок по IA §4). */
+  .field__other {
+    display: grid;
+    gap: 0.4rem;
+  }
+  [data-other-field][hidden] {
+    display: none;
+  }
+
+  /* Радио / чекбокс группы */
+  .radio-row {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .radio {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.97rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .radio input,
+  .consent input {
+    margin-top: 0.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--btn-bg); /* нативный контрол в orange-deep */
+    flex: 0 0 auto;
+  }
+
+  .field--consent {
+    margin-top: var(--space-1);
+  }
+  .consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .consent a {
+    color: var(--link);
+  }
+
+  /* Кнопка отправки — заливка orange-deep + белый, ≥16px, полужирный */
+  .apply__submit {
+    margin-top: var(--space-2);
+    display: grid;
+    gap: var(--space-2);
+  }
+  .apply__btn {
+    justify-self: start;
+    font-family: var(--font-body);
+    font-size: var(--btn-font-size); /* общий токен кнопок (global.css), ≥16px */
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--btn-text);
+    background: var(--btn-bg);
+    border: 2px solid var(--btn-bg);
+    border-radius: var(--radius-md);
+    padding: 0.9rem 2rem;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+  }
+  .apply__btn:hover {
+    background: var(--btn-bg-hover);
+    border-color: var(--btn-bg-hover);
+  }
+  .apply__privacy {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 48ch;
+  }
+
+  @media (max-width: 30rem) {
+    .apply__btn {
+      justify-self: stretch;
+      text-align: center;
+    }
+  }
+</style>
+</content>
+</invoke>
