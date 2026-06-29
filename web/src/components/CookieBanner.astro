@@ -1,0 +1,171 @@
+---
+/**
+ * CookieBanner.astro — баннер согласия на куки (152-ФЗ, T3-3).
+ *
+ * Механика:
+ * - По умолчанию скрыт (display:none) — без JS остаётся скрытым (правильно по 152-ФЗ).
+ * - Инлайн-скрипт проверяет localStorage и показывает баннер если нет согласия.
+ * - Кнопка «Принять» → mst_cookie_consent="yes", скрывает баннер, динамически
+ *   загружает Яндекс.Метрику (счётчик 91052806).
+ * - Кнопка «Без аналитики» → mst_cookie_consent="no", скрывает баннер, Метрика не грузится.
+ */
+const COUNTER_ID = 91052806;
+---
+
+<div
+  class="cookie-banner"
+  id="cookie-banner"
+  role="region"
+  aria-label="Согласие на куки"
+  aria-live="polite"
+>
+  <div class="cookie-banner__inner">
+    <p class="cookie-banner__text">
+      Мы используем Яндекс.Метрику для анализа посещаемости. Вы можете принять или
+      отказаться от аналитических куки.{' '}
+      <a href="/privacy" class="cookie-banner__link">Политика конфиденциальности</a>.
+    </p>
+    <div class="cookie-banner__actions">
+      <button type="button" id="cookie-accept" class="cookie-banner__btn cookie-banner__btn--primary">
+        Принять
+      </button>
+      <button type="button" id="cookie-reject" class="cookie-banner__btn cookie-banner__btn--ghost">
+        Без аналитики
+      </button>
+    </div>
+  </div>
+</div>
+
+<script is:inline define:vars={{ COUNTER_ID }}>
+  (function () {
+    var banner = document.getElementById('cookie-banner');
+    if (!banner) return;
+
+    // Показываем баннер только если согласие ещё не дано
+    var consent = localStorage.getItem('mst_cookie_consent');
+    if (consent === 'yes' || consent === 'no') {
+      // Уже решено — если согласились, грузим Метрику
+      if (consent === 'yes') loadMetrika();
+      return;
+    }
+
+    banner.style.display = 'block';
+
+    document.getElementById('cookie-accept').addEventListener('click', function () {
+      localStorage.setItem('mst_cookie_consent', 'yes');
+      banner.style.display = 'none';
+      loadMetrika();
+    });
+
+    document.getElementById('cookie-reject').addEventListener('click', function () {
+      localStorage.setItem('mst_cookie_consent', 'no');
+      banner.style.display = 'none';
+    });
+
+    function loadMetrika() {
+      if (window.__metrikaLoaded) return;
+      window.__metrikaLoaded = true;
+
+      (function (m, e, t, r, i, k, a) {
+        m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments); };
+        m[i].l = 1 * new Date();
+        for (var j = 0; j < document.scripts.length; j++) {
+          if (document.scripts[j].src === r) return;
+        }
+        k = e.createElement(t);
+        a = e.getElementsByTagName(t)[0];
+        k.async = 1;
+        k.src = r;
+        a.parentNode.insertBefore(k, a);
+      })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', 'ym');
+
+      ym(COUNTER_ID, 'init', {
+        clickmap: true,
+        trackLinks: true,
+        accurateTrackBounce: true,
+      });
+    }
+  })();
+</script>
+
+<style>
+  .cookie-banner {
+    display: none; /* скрыт по умолчанию; JS раскрывает при необходимости */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--color-wood-darkest);
+    color: var(--color-white);
+    padding: 1rem 1.5rem;
+  }
+
+  .cookie-banner__inner {
+    max-width: var(--maxw);
+    margin-inline: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .cookie-banner__text {
+    flex: 1 1 20rem;
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    line-height: var(--leading-body);
+  }
+
+  .cookie-banner__link {
+    color: var(--color-sand);
+    text-underline-offset: 2px;
+  }
+
+  .cookie-banner__link:hover {
+    color: var(--color-white);
+  }
+
+  .cookie-banner__actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;
+  }
+
+  .cookie-banner__btn {
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 1.25rem;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .cookie-banner__btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .cookie-banner__btn--primary {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border: 2px solid var(--btn-bg);
+  }
+
+  .cookie-banner__btn--primary:hover {
+    background: var(--btn-bg-hover);
+    border-color: var(--btn-bg-hover);
+  }
+
+  .cookie-banner__btn--ghost {
+    background: transparent;
+    color: var(--color-white);
+    border: 2px solid var(--color-white);
+  }
+
+  .cookie-banner__btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+</style>

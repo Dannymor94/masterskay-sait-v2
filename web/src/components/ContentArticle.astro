@@ -34,7 +34,9 @@ const { title, bodyHtml, heroImage = null } = Astro.props;
           alt={`Иллюстрация к разделу «${title}»`}
           width="1200"
           height="630"
+          loading="eager"
           decoding="async"
+          data-photo-slot="content-hero"
         />
       )
     }

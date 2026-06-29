@@ -2,7 +2,7 @@
  * auth.ts — авторизация админки (ОДНА роль). Механизм строит агент, СЕКРЕТ заводит
  * человек (CLAUDE.md §2). Агент НЕ создаёт пароли/секреты и НЕ коммитит .env.
  *
- * Env (кладёт Антон в web/.env):
+ * Env (кладёт Даниил в web/.env):
  *  - ADMIN_USER            — логин (необязателен; дефолт 'admin').
  *  - ADMIN_PASSWORD_HASH   — scrypt-хэш пароля в формате 'scrypt$<saltHex>$<hashHex>'
  *                            (генерит web/scripts/hash-password.mjs).

@@ -2,16 +2,13 @@
 /**
  * Metrika.astro — единая точка подключения Яндекс.Метрики (счётчик 91052806).
  *
- * Зачем компонент, а не сниппет на каждой странице: чтобы загрузку Метрики было
- * легко обернуть в согласие на куки позже (152-ФЗ). Подключаем точечно — только
- * на лендинге /arenda и странице /arenda/spasibo (M1), не на всех страницах.
+ * С T3-3 Метрика НЕ загружается отсюда напрямую — только через CookieBanner
+ * после явного согласия пользователя (152-ФЗ). Этот компонент:
+ * 1. Ставит noscript-пиксель (не устанавливает куки, только учёт без JS).
+ * 2. Если передан prop `goal` — вызывает reachGoal ПОСЛЕ того, как window.ym
+ *    станет доступен (на /arenda/spasibo, если пользователь дал согласие ранее).
  *
- * ⚠️ 152-ФЗ / приватность: Метрика ставит куки. В M1 счётчик и цель ставятся БЕЗ
- * баннера согласия. Баннер согласия на куки и наполнение /privacy — ДОЛГ
- * (SPEC §7, milestone M3) ИЛИ решение Антона. Когда баннер появится — здесь
- * добавляется проверка согласия перед инициализацией (props enabled / условие).
- *
- * Цель `reachGoal('arenda_lead')` вызывается на /arenda/spasibo через проп goal.
+ * Загрузку самого счётчика выполняет CookieBanner.astro при нажатии «Принять».
  */
 interface Props {
   /** Если передан — после инициализации счётчика дёрнуть reachGoal(goal). */
@@ -21,39 +18,19 @@ const { goal } = Astro.props;
 const COUNTER_ID = 91052806;
 ---
 
-{/* Стандартный async-сниппет Яндекс.Метрики. is:inline — чтобы Astro не трогал
-    глобальный инициализатор ym(). */}
-<script is:inline define:vars={{ COUNTER_ID, goal }}>
-  (function (m, e, t, r, i, k, a) {
-    m[i] =
-      m[i] ||
-      function () {
-        (m[i].a = m[i].a || []).push(arguments);
-      };
-    m[i].l = 1 * new Date();
-    for (var j = 0; j < document.scripts.length; j++) {
-      if (document.scripts[j].src === r) {
-        return;
+{goal && (
+  <script is:inline define:vars={{ COUNTER_ID, goal }}>
+    // Вызываем цель только если Метрика уже загружена (пользователь дал согласие).
+    // Ждём до 3 секунд на случай если загрузка ещё в процессе.
+    (function tryGoal(attempts) {
+      if (typeof window.ym === 'function') {
+        window.ym(COUNTER_ID, 'reachGoal', goal);
+      } else if (attempts > 0) {
+        setTimeout(function () { tryGoal(attempts - 1); }, 300);
       }
-    }
-    (k = e.createElement(t)),
-      (a = e.getElementsByTagName(t)[0]),
-      (k.async = 1),
-      (k.src = r),
-      a.parentNode.insertBefore(k, a);
-  })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', 'ym');
-
-  ym(COUNTER_ID, 'init', {
-    clickmap: true,
-    trackLinks: true,
-    accurateTrackBounce: true,
-  });
-
-  // Цель конверсии (на /arenda/spasibo): вызываем ПОСЛЕ init.
-  if (goal) {
-    ym(COUNTER_ID, 'reachGoal', goal);
-  }
-</script>
+    })(10);
+  </script>
+)}
 
 <noscript>
   <div>
@@ -64,4 +41,3 @@ const COUNTER_ID = 91052806;
     />
   </div>
 </noscript>
-</content>

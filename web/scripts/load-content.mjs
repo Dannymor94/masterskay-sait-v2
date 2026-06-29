@@ -23,7 +23,7 @@ import { dirname, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url)); // web/scripts
-const CONTENT_DIR = resolve(here, '../src/content'); // web/src/content
+const CONTENT_DIR = resolve(here, '../src/content/source'); // web/src/content/source
 
 // Лендинг аренды — НЕ контент-страница (своя страница /arenda во фронте). Пропускаем.
 const SKIP = new Set(['arenda.md']);

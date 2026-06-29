@@ -1,11 +1,37 @@
 ---
 import '../styles/global.css';
+import CookieBanner from '../components/CookieBanner.astro';
 
 interface Props {
-  title: string;
+  title?: string;
   description?: string;
 }
-const { title, description = 'Центр практик «Мастерская», Ростов-на-Дону' } = Astro.props;
+
+const DEFAULT_TITLE = '«Мастерская» — центр практик в Ростове-на-Дону';
+const DEFAULT_DESCRIPTION =
+  'Центр практик Мастерская в Ростове-на-Дону. Аренда залов, расписание занятий, события. Фурмановская 79/41.';
+
+const {
+  title = DEFAULT_TITLE,
+  description = DEFAULT_DESCRIPTION,
+} = Astro.props;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: 'Мастерская',
+  url: 'https://yoga-rostov-mst.ru',
+  telephone: '+7-938-100-57-57',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Фурмановская 79/41',
+    addressLocality: 'Ростов-на-Дону',
+    addressRegion: 'Ростовская область',
+    addressCountry: 'RU',
+  },
+  openingHours: 'Mo-Su 07:00-22:00',
+  priceRange: '₽₽',
+};
 ---
 
 <!doctype html>
@@ -15,6 +41,7 @@ const { title, description = 'Центр практик «Мастерская»
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
     {/* Предзагрузка ключевых шрифтов выше сгиба (Raleway 200/600, Open Sans 400) */}
     <link rel="preload" href="/fonts/Raleway-SemiBold.ttf" as="font" type="font/ttf" crossorigin />
     <link rel="preload" href="/fonts/OpenSans-Regular.ttf" as="font" type="font/ttf" crossorigin />
@@ -26,5 +53,6 @@ const { title, description = 'Центр практик «Мастерская»
       <slot />
     </main>
     <slot name="footer" />
+    <CookieBanner />
   </body>
 </html>
