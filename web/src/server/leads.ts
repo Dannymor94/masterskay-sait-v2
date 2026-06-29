@@ -128,6 +128,7 @@ export type VisitFields = {
   name?: string;
   contact?: string;
   direction?: string; // направление (йога/практика/…) — необязательно
+  subscription_interest?: string; // 'yes' если отмечен чекбокс, иначе отсутствует
   consent?: string;
   source_page?: string;
 };
@@ -156,7 +157,11 @@ export function validateVisit(fields: VisitFields): ValidationResult {
 export function insertVisitLead(fields: VisitFields): { created: boolean; id: string } {
   const id = s(fields.idempotency_key);
   const db = getDb();
-  const payload = JSON.stringify({ direction: s(fields.direction) });
+  const subscriptionInterest = s(fields.subscription_interest) === 'yes';
+  const payload = JSON.stringify({
+    direction: s(fields.direction),
+    subscription_interest: subscriptionInterest,
+  });
   const info = db
     .prepare(
       `INSERT INTO lead (id, type, name, contact, payload, status, source_page, created_at)

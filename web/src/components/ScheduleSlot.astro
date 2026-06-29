@@ -22,8 +22,9 @@ interface Props {
   item: ScheduleSlot;
   hallName: string;
   specialistName?: string | null;
+  specialistSlug?: string | null;
 }
-const { item, hallName, specialistName = null } = Astro.props;
+const { item, hallName, specialistName = null, specialistSlug = null } = Astro.props;
 
 const isBooking = item.cta_type === 'booking';
 const href = isBooking ? bookingHref(item) : (item.external_url ?? '#');
@@ -41,7 +42,11 @@ const href = isBooking ? bookingHref(item) : (item.external_url ?? '#');
     <p class="slot__meta">
       <span class="slot__hall">{hallName}</span>
       {specialistName && <span class="slot__sep" aria-hidden="true">·</span>}
-      {specialistName && <span class="slot__spec">{specialistName}</span>}
+      {specialistName && (
+        specialistSlug
+          ? <a href={`/mastera/${specialistSlug}`} class="slot__spec slot__spec--link">{specialistName}</a>
+          : <span class="slot__spec">{specialistName}</span>
+      )}
     </p>
   </div>
 
@@ -118,6 +123,15 @@ const href = isBooking ? bookingHref(item) : (item.external_url ?? '#');
   }
   .slot__sep {
     color: var(--border);
+  }
+
+  .slot__spec--link {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .slot__spec--link:hover {
+    color: var(--accent-fill);
   }
 
   .slot__cta {

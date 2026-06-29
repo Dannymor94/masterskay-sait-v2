@@ -64,9 +64,14 @@ beforeAll(async () => {
   SlotComponent = (await import(ScheduleSlotPath)).default;
 }, 30_000);
 
-async function renderSlot(slot: SlotRow, hallName = 'Большой зал', specialistName: string | null = null) {
+async function renderSlot(
+  slot: SlotRow,
+  hallName = 'Большой зал',
+  specialistName: string | null = null,
+  specialistSlug: string | null = null,
+) {
   return container.renderToString(SlotComponent, {
-    props: { item: slot, hallName, specialistName },
+    props: { item: slot, hallName, specialistName, specialistSlug },
   });
 }
 
@@ -136,6 +141,37 @@ describe('ScheduleSlot — два CTA на слот', () => {
   it('специалист выводится, если задан', async () => {
     const html = await renderSlot(makeSlot({}), 'Большой зал', 'Демо-специалист');
     expect(html).toContain('Демо-специалист');
+  });
+
+  // T-master-4: ссылка на /mastera/[slug]
+  it('специалист со slug → имя рендерится ссылкой href="/mastera/<slug>"', async () => {
+    const html = await renderSlot(makeSlot({}), 'Большой зал', 'Анна Иванова', 'anna-ivanova');
+    expect(html).toContain('href="/mastera/anna-ivanova"');
+    expect(html).toContain('Анна Иванова');
+  });
+
+  it('специалист без slug → простой span, без href="/mastera/"', async () => {
+    const html = await renderSlot(makeSlot({}), 'Большой зал', 'Иван Петров', null);
+    expect(html).toContain('Иван Петров');
+    expect(html).not.toContain('href="/mastera/');
+  });
+
+  it('стили .slot__spec--link используют только var() — без хардкод-значений цвета', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { fileURLToPath } = await import('node:url');
+    const src = readFileSync(
+      fileURLToPath(new URL('../../web/src/components/ScheduleSlot.astro', import.meta.url)),
+      'utf8',
+    );
+    // Находим блок .slot__spec--link в <style>
+    const matches = [...src.matchAll(/\.slot__spec--link\s*\{([^}]+)\}/g)];
+    expect(matches.length, 'класс .slot__spec--link должен быть в стилях').toBeGreaterThan(0);
+    for (const m of matches) {
+      const block = m[1];
+      // Не должно быть hex-цвета (#...) или rgb/rgba без var
+      expect(block).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+      expect(block).not.toMatch(/\brgb\s*\(/);
+    }
   });
 });
 

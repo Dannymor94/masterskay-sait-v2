@@ -38,7 +38,12 @@ const slots = publishedForView(publishedSlots());
 
 // Справочники для имён зала/специалиста (без N+1: одним списком в Map).
 const hallNames = new Map(listHalls().map((h) => [h.id, h.name]));
-const specialistNames = new Map(listSpecialists().map((s) => [s.id, s.name]));
+const specialistData = new Map(
+  listSpecialists().map((s) => [
+    s.id,
+    { name: s.name, slug: s.is_studio_master === 1 && s.slug ? s.slug : null },
+  ]),
+);
 
 const days = groupByWeekday(slots);
 const hasSlots = days.length > 0;
@@ -75,7 +80,12 @@ const hasSlots = days.length > 0;
                         hallName={hallNames.get(slot.hall_id) ?? 'Зал'}
                         specialistName={
                           slot.specialist_id
-                            ? (specialistNames.get(slot.specialist_id) ?? null)
+                            ? (specialistData.get(slot.specialist_id)?.name ?? null)
+                            : null
+                        }
+                        specialistSlug={
+                          slot.specialist_id
+                            ? (specialistData.get(slot.specialist_id)?.slug ?? null)
                             : null
                         }
                       />
@@ -92,6 +102,29 @@ const hasSlots = days.length > 0;
           </p>
         )
       }
+    </div>
+  </section>
+
+  <section class="faq faq--schedule" aria-labelledby="schedule-faq-title">
+    <div class="container faq--schedule__inner">
+      <header class="faq__head">
+        <p class="overline">FAQ</p>
+        <h2 id="schedule-faq-title">Частые вопросы</h2>
+      </header>
+      <div class="faq__list">
+        <details class="faq__item">
+          <summary class="faq__q">
+            <span>Есть ли абонементы?</span>
+            <span class="faq__icon" aria-hidden="true" />
+          </summary>
+          <div class="faq__a">
+            <p>
+              Да, для постоянных резидентов обсуждаем индивидуально. Напишите о своих
+              планах в заявке — подберём формат.
+            </p>
+          </div>
+        </details>
+      </div>
     </div>
   </section>
 
@@ -133,6 +166,79 @@ const hasSlots = days.length > 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+  }
+
+  /* FAQ-секция на странице расписания */
+  .faq--schedule {
+    padding-block: var(--space-5);
+  }
+  .faq--schedule__inner {
+    max-width: 48rem;
+  }
+  .faq__head {
+    margin-bottom: var(--space-4);
+  }
+  .faq__list {
+    display: grid;
+    gap: var(--space-1);
+  }
+  .faq__item {
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+  }
+  .faq__q {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    cursor: pointer;
+    list-style: none;
+    padding: var(--space-2) 0;
+    font-family: var(--font-headings);
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--heading);
+  }
+  .faq__q::-webkit-details-marker {
+    display: none;
+  }
+  .faq__icon {
+    flex: 0 0 auto;
+    position: relative;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .faq__icon::before,
+  .faq__icon::after {
+    content: '';
+    position: absolute;
+    background: var(--accent-fill);
+    border-radius: 1px;
+  }
+  .faq__icon::before {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    transform: translateY(-50%);
+  }
+  .faq__icon::after {
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    transform: translateX(-50%);
+    transition: opacity 0.18s ease;
+  }
+  .faq__item[open] .faq__icon::after {
+    opacity: 0;
+  }
+  .faq__a {
+    padding: 0 0 var(--space-3);
+  }
+  .faq__a p {
+    margin: 0;
+    color: var(--text);
+    max-width: 62ch;
   }
 
   .schedule__empty {

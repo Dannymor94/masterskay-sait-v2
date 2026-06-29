@@ -145,3 +145,23 @@ describe('VisitForm — репопуляция и предзаполнение',
     expect(out).toMatch(/Хатха-йога/);
   });
 });
+
+// T-master-5: чекбокс «Интересует абонемент»
+describe('VisitForm — чекбокс subscription_interest (T-master-5)', () => {
+  it('чекбокс name="subscription_interest" value="yes" присутствует в форме', () => {
+    const field = html.match(/<input\b[^>]*\bname="subscription_interest"[^>]*>/i);
+    expect(field, 'чекбокс subscription_interest должен быть в форме').not.toBeNull();
+    expect(field![0]).toMatch(/\btype="checkbox"/i);
+    expect(field![0]).toMatch(/\bvalue="yes"/i);
+  });
+
+  it('чекбокс subscription_interest НЕ является обязательным', () => {
+    const field = html.match(/<input\b[^>]*\bname="subscription_interest"[^>]*>/i);
+    expect(field).not.toBeNull();
+    expect(field![0]).not.toMatch(/\brequired\b/i);
+  });
+
+  it('чекбокс subscription_interest имеет видимую метку с текстом про абонемент', () => {
+    expect(html).toMatch(/абонемент/i);
+  });
+});

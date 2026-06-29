@@ -192,7 +192,15 @@ const hasErrors = errorEntries.length > 0;
         </p>
       </div>
 
-      {/* 4. Согласие (обязательно) */}
+      {/* 4. Абонемент (необязательно) */}
+      <div class="field field--consent">
+        <label class="consent">
+          <input type="checkbox" name="subscription_interest" value="yes" />
+          <span>Интересует абонемент</span>
+        </label>
+      </div>
+
+      {/* 5. Согласие (обязательно) */}
       <div class="field field--consent">
         <label class="consent">
           <input

@@ -1,0 +1,287 @@
+---
+/**
+ * /mastera/[slug] — профиль мастера студии.
+ *
+ * SSR (prerender=false). Данные: getSpecialistBySlug(slug) → 404 если не найден.
+ * Расписание: publishedSlots() + listHalls() → фильтр по specialist_id == master.id.
+ * Фото — data-photo-slot (плейсхолдер).
+ * Все цвета через var() из tokens.css — никаких hex.
+ * Страница работает без JS.
+ */
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import Button from '../../components/Button.astro';
+import ScheduleSlot from '../../components/ScheduleSlot.astro';
+import { getSpecialistBySlug } from '../../server/specialists.ts';
+import { publishedSlots } from '../../server/schedule.ts';
+import { listHalls } from '../../server/halls.ts';
+
+const { slug } = Astro.params;
+const master = slug ? getSpecialistBySlug(slug) : undefined;
+
+if (!master) {
+  return Astro.redirect('/404', 404);
+}
+
+const allSlots = publishedSlots();
+const masterSlots = allSlots.filter((s) => s.specialist_id === master.id);
+
+const halls = listHalls();
+const hallNames = new Map(halls.map((h) => [h.id, h.name]));
+
+const MASTER_OVERLINE = 'Мастер студии';
+const SCHEDULE_H2 = 'Ближайшие занятия';
+const SCHEDULE_EMPTY =
+  'Пока расписание не опубликовано. Напишите нам — расскажем, когда будет следующее занятие.';
+const CTA_NOTE = 'Если хотите попасть на занятие — оставьте заявку, и мы свяжемся с вами.';
+
+const pageTitle = `${master.name} — Мастер «Мастерской»`;
+const pageDescription = master.bio
+  ? master.bio.slice(0, 160)
+  : `${master.name} — ${master.directions.join(', ')} в студии «Мастерская», Ростов-на-Дону.`;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <SiteHeader slot="header" />
+
+  <article class="master-profile">
+    <!-- Хлебная крошка -->
+    <nav class="breadcrumb" aria-label="Навигация по разделам">
+      <ol class="breadcrumb__list">
+        <li class="breadcrumb__item">
+          <a class="breadcrumb__link" href="/mastera">Мастера</a>
+        </li>
+        <li class="breadcrumb__item breadcrumb__item--current" aria-current="page">
+          {master.name}
+        </li>
+      </ol>
+    </nav>
+
+    <!-- Шапка профиля -->
+    <header class="master-profile__header">
+      <figure
+        class="master-profile__media"
+        data-photo-slot={master.photo_slot ?? `master-${master.id}`}
+        aria-hidden="true"
+      >
+        <div
+          class="master-profile__photo-placeholder"
+          role="img"
+          aria-label={`Фото: ${master.name}`}
+        ></div>
+      </figure>
+
+      <div class="master-profile__meta">
+        <p class="overline">{MASTER_OVERLINE}</p>
+        <h1 class="master-profile__name">{master.name}</h1>
+        {master.directions.length > 0 && (
+          <p class="master-profile__directions">{master.directions.join(', ')}</p>
+        )}
+      </div>
+    </header>
+
+    <!-- Биография -->
+    {master.bio && (
+      <section class="master-profile__bio" aria-label="О мастере">
+        <p set:html={master.bio.replace(/\n/g, '<br>')} />
+      </section>
+    )}
+
+    <!-- Расписание -->
+    <section class="master-profile__schedule" aria-labelledby="schedule-h2">
+      <h2 id="schedule-h2">{SCHEDULE_H2}</h2>
+
+      {masterSlots.length === 0 ? (
+        <p class="master-profile__schedule-empty">{SCHEDULE_EMPTY}</p>
+      ) : (
+        <ul class="schedule-list" role="list">
+          {masterSlots.map((slot) => (
+            <li>
+              <ScheduleSlot
+                item={slot as any}
+                hallName={hallNames.get(slot.hall_id) ?? slot.hall_id}
+                specialistName={master.name}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <!-- CTA -->
+    <section class="master-profile__cta" aria-label="Записаться на занятие">
+      <Button variant="primary" href="/zapis">Записаться</Button>
+      <p class="master-profile__cta-note">{CTA_NOTE}</p>
+    </section>
+  </article>
+
+  <SiteFooter slot="footer" />
+</BaseLayout>
+
+<style>
+  .master-profile {
+    max-width: 56rem;
+    margin-inline: auto;
+    padding: var(--space-4) var(--space-3) var(--space-6);
+  }
+
+  /* Хлебная крошка */
+  .breadcrumb {
+    margin-bottom: var(--space-4);
+  }
+
+  .breadcrumb__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .breadcrumb__item + .breadcrumb__item::before {
+    content: '→';
+    margin-right: 0.5rem;
+    color: var(--border);
+  }
+
+  .breadcrumb__link {
+    color: var(--link);
+    text-decoration: none;
+  }
+  .breadcrumb__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .breadcrumb__link:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm, 2px);
+  }
+
+  .breadcrumb__item--current {
+    color: var(--text);
+  }
+
+  /* Шапка */
+  .master-profile__header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  @media (min-width: 40rem) {
+    .master-profile__header {
+      grid-template-columns: 18rem 1fr;
+      align-items: start;
+    }
+  }
+
+  .master-profile__media {
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .master-profile__photo-placeholder {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: color-mix(in srgb, var(--surface) 80%, var(--border));
+  }
+
+  .master-profile__meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .overline {
+    font-family: var(--font-overline);
+    font-size: var(--text-overline);
+    font-weight: 600;
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .master-profile__name {
+    margin: 0;
+    color: var(--heading);
+  }
+
+  .master-profile__directions {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Биография */
+  .master-profile__bio {
+    margin-bottom: var(--space-5);
+    padding: var(--space-3);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border-left: 3px solid var(--accent-fill);
+  }
+
+  .master-profile__bio p {
+    margin: 0;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* Расписание */
+  .master-profile__schedule {
+    margin-bottom: var(--space-5);
+  }
+
+  .master-profile__schedule h2 {
+    margin: 0 0 var(--space-3);
+    color: var(--heading);
+  }
+
+  .master-profile__schedule-empty {
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+    padding: var(--space-3);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    margin: 0;
+  }
+
+  .schedule-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  /* CTA */
+  .master-profile__cta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding-top: var(--space-4);
+    border-top: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+  }
+
+  .master-profile__cta-note {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+</style>

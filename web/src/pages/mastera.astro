@@ -1,0 +1,193 @@
+---
+/**
+ * /mastera — список мастеров студии.
+ *
+ * SSR (prerender=false). Данные: listStudioMasters() → specialists WHERE is_studio_master=1.
+ * Фото — data-photo-slot (плейсхолдеры, как в HallCard).
+ * Все цвета через var() из tokens.css — никаких hex.
+ * Страница работает без JS.
+ */
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { listStudioMasters } from '../server/specialists.ts';
+
+const masters = listStudioMasters();
+
+const OVERLINE = 'Кто ведёт занятия';
+const H1 = 'Мастера студии';
+const LEAD =
+  'Практики в «Мастерской» ведут люди, которые работают с телом и вниманием давно и честно. Здесь коротко о каждом — чем занимается, как ведёт и к кому стоит прийти.';
+---
+
+<BaseLayout title="Мастера студии — «Мастерская»" description={LEAD}>
+  <SiteHeader slot="header" />
+
+  <section class="masters-section" aria-labelledby="masters-h1">
+    <div class="masters-section__intro">
+      <p class="overline">{OVERLINE}</p>
+      <h1 id="masters-h1">{H1}</h1>
+      <p class="lead">{LEAD}</p>
+    </div>
+
+    {masters.length === 0 ? (
+      <p class="masters-section__empty">Раздел скоро появится.</p>
+    ) : (
+      <ul class="masters-grid" role="list">
+        {masters.map((master) => (
+          <li>
+            <article class="master-card">
+              <figure
+                class="master-card__media"
+                data-photo-slot={master.photo_slot ?? `master-${master.id}`}
+                aria-hidden="true"
+              >
+                <div class="master-card__photo-placeholder" role="img" aria-label={`Фото: ${master.name}`}></div>
+              </figure>
+              <div class="master-card__body">
+                <h2 class="master-card__name">{master.name}</h2>
+                {master.directions.length > 0 && (
+                  <p class="master-card__directions">{master.directions.join(', ')}</p>
+                )}
+                <a class="master-card__link" href={`/mastera/${master.slug ?? master.id}`}>
+                  Подробнее <span aria-hidden="true">→</span>
+                </a>
+              </div>
+            </article>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  <SiteFooter slot="footer" />
+</BaseLayout>
+
+<style>
+  .masters-section {
+    max-width: 72rem;
+    margin-inline: auto;
+    padding: var(--space-5) var(--space-3);
+  }
+
+  .masters-section__intro {
+    max-width: 44rem;
+    margin-bottom: var(--space-5);
+  }
+
+  .overline {
+    font-family: var(--font-overline);
+    font-size: var(--text-overline);
+    font-weight: 600;
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 var(--space-1);
+  }
+
+  h1 {
+    margin: 0 0 var(--space-2);
+    color: var(--heading);
+  }
+
+  .lead {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  .masters-section__empty {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+  }
+
+  .masters-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  @media (min-width: 40rem) {
+    .masters-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .masters-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Карточка */
+  .master-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .master-card__media {
+    margin: 0;
+    background: var(--surface);
+  }
+
+  .master-card__photo-placeholder {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: color-mix(in srgb, var(--surface) 80%, var(--border));
+  }
+
+  .master-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    flex: 1 1 auto;
+  }
+
+  .master-card__name {
+    margin: 0;
+    font-size: var(--text-h3);
+    color: var(--heading);
+  }
+
+  .master-card__directions {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    flex: 1 1 auto;
+  }
+
+  .master-card__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: auto;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--link);
+    text-decoration: none;
+  }
+
+  .master-card__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .master-card__link:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm, 2px);
+  }
+</style>

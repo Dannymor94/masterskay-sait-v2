@@ -49,7 +49,9 @@ CREATE TABLE IF NOT EXISTS hall (
 );
 CREATE TABLE IF NOT EXISTS specialist (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT, bio TEXT, photo TEXT,
-  external_url TEXT, is_resident INTEGER NOT NULL DEFAULT 0
+  external_url TEXT, is_resident INTEGER NOT NULL DEFAULT 0,
+  slug TEXT, photo_slot TEXT, directions TEXT NOT NULL DEFAULT '[]',
+  sort INTEGER NOT NULL DEFAULT 0, is_studio_master INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS slot (
   id TEXT PRIMARY KEY, hall_id TEXT NOT NULL REFERENCES hall(id),
@@ -85,11 +87,25 @@ ON CONFLICT(id) DO UPDATE SET name=excluded.name, area_m2=excluded.area_m2,
   rate_day=excluded.rate_day, rate_subscription=excluded.rate_subscription,
   photos=excluded.photos, description=excluded.description, sort=excluded.sort`);
 
+// Apply column migrations for existing DBs (SQLite has no ADD COLUMN IF NOT EXISTS).
+{
+  const cols = db.prepare('PRAGMA table_info(specialist)').all().map((c) => c.name);
+  if (!cols.includes('slug')) db.exec("ALTER TABLE specialist ADD COLUMN slug TEXT");
+  if (!cols.includes('photo_slot')) db.exec("ALTER TABLE specialist ADD COLUMN photo_slot TEXT");
+  if (!cols.includes('directions')) db.exec("ALTER TABLE specialist ADD COLUMN directions TEXT NOT NULL DEFAULT '[]'");
+  if (!cols.includes('sort')) db.exec("ALTER TABLE specialist ADD COLUMN sort INTEGER NOT NULL DEFAULT 0");
+  if (!cols.includes('is_studio_master')) db.exec("ALTER TABLE specialist ADD COLUMN is_studio_master INTEGER NOT NULL DEFAULT 0");
+}
+
 const upsertSpec = db.prepare(`
-INSERT INTO specialist (id, name, kind, bio, photo, external_url, is_resident)
-VALUES (@id,@name,@kind,@bio,@photo,@external_url,@is_resident)
+INSERT INTO specialist (id, name, kind, bio, photo, external_url, is_resident,
+  slug, photo_slot, directions, sort, is_studio_master)
+VALUES (@id,@name,@kind,@bio,@photo,@external_url,@is_resident,
+  @slug,@photo_slot,@directions,@sort,@is_studio_master)
 ON CONFLICT(id) DO UPDATE SET name=excluded.name, kind=excluded.kind, bio=excluded.bio,
-  photo=excluded.photo, external_url=excluded.external_url, is_resident=excluded.is_resident`);
+  photo=excluded.photo, external_url=excluded.external_url, is_resident=excluded.is_resident,
+  slug=excluded.slug, photo_slot=excluded.photo_slot, directions=excluded.directions,
+  sort=excluded.sort, is_studio_master=excluded.is_studio_master`);
 
 const upsertSlot = db.prepare(`
 INSERT INTO slot (id, hall_id, specialist_id, weekday, time_start, time_end, title,
@@ -142,21 +158,36 @@ const seed = db.transaction(() => {
   });
 
   // --- Специалисты (демо, без реальных имён) ---
+  const noMaster = { slug: null, photo_slot: null, directions: '[]', sort: 0, is_studio_master: 0 };
   upsertSpec.run({
     id: 'demo-massage', name: 'Демо-специалист · массаж', kind: 'массаж',
     bio: 'Демо-карточка. Заменит администратор реальными данными.',
     photo: '/img/placeholders/specialist.svg', external_url: null, is_resident: 1,
+    ...noMaster,
   });
   upsertSpec.run({
     id: 'demo-psy', name: 'Демо-специалист · психолог', kind: 'психолог',
     bio: 'Демо-карточка. Ведёт по внешней записи.',
     photo: '/img/placeholders/specialist.svg', external_url: 'https://example.com/demo-psy',
-    is_resident: 1,
+    is_resident: 1, ...noMaster,
   });
   upsertSpec.run({
     id: 'demo-yoga', name: 'Демо-преподаватель · йога', kind: 'йога',
     bio: 'Демо-карточка преподавателя направления.',
     photo: '/img/placeholders/specialist.svg', external_url: null, is_resident: 0,
+    ...noMaster,
+  });
+
+  // --- Мастера студии (TODO — заменить реальными данными) ---
+  upsertSpec.run({
+    id: 'master-todo-1', name: 'TODO Имя мастера 1', slug: 'master-todo-1', kind: 'йога',
+    bio: null, photo: null, external_url: null, is_resident: 1,
+    photo_slot: 'master-1', directions: JSON.stringify(['TODO направление']), sort: 1, is_studio_master: 1,
+  });
+  upsertSpec.run({
+    id: 'master-todo-2', name: 'TODO Имя мастера 2', slug: 'master-todo-2', kind: 'практики',
+    bio: null, photo: null, external_url: null, is_resident: 1,
+    photo_slot: 'master-2', directions: JSON.stringify(['TODO направление']), sort: 2, is_studio_master: 1,
   });
 
   // --- Слоты ---

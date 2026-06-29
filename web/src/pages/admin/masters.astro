@@ -1,0 +1,102 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import {
+  listStudioMasters, createSpecialist, removeSpecialist, validateSpecialist,
+} from '../../server/specialists.ts';
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  if (String(form.get('_action') ?? '') === 'delete') {
+    removeSpecialist(String(form.get('id') ?? ''));
+    return Astro.redirect('/admin/masters', 303);
+  }
+  // directions: textarea with one direction per line → JSON array
+  const directionsRaw = String(form.get('directions') ?? '').trim();
+  const directions = directionsRaw
+    ? directionsRaw.split('\n').map((l) => l.trim()).filter(Boolean)
+    : [];
+  const input = {
+    id: String(form.get('id') ?? '').trim(),
+    name: String(form.get('name') ?? '').trim(),
+    slug: String(form.get('slug') ?? '').trim() || null,
+    kind: String(form.get('kind') ?? '').trim() || null,
+    bio: String(form.get('bio') ?? '').trim() || null,
+    photo_slot: String(form.get('photo_slot') ?? '').trim() || null,
+    sort: Number(form.get('sort') ?? 0) || 0,
+    is_resident: form.get('is_resident') === 'on',
+    is_studio_master: 1 as const,
+    directions,
+  };
+  const v = validateSpecialist(input);
+  if (!v.ok) error = Object.values(v.errors).join(' ');
+  else {
+    createSpecialist(input);
+    return Astro.redirect('/admin/masters', 303);
+  }
+}
+const masters = listStudioMasters();
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Мастера студии" user={user}>
+  {error && <p class="err" role="alert">{error}</p>}
+  <table>
+    <thead>
+      <tr>
+        <th>id</th><th>Имя</th><th>slug</th><th>Тип</th><th>Sort</th><th>Резидент</th><th>photo_slot</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {masters.map((m) => (
+        <tr>
+          <td>{m.id}</td>
+          <td>{m.name}</td>
+          <td>{m.slug}</td>
+          <td>{m.kind}</td>
+          <td>{m.sort}</td>
+          <td>{m.is_resident ? 'да' : 'нет'}</td>
+          <td>{m.photo_slot}</td>
+          <td>
+            <form method="POST" class="inline">
+              <input type="hidden" name="_action" value="delete" />
+              <input type="hidden" name="id" value={m.id} />
+              <button class="btn btn-secondary" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h3>Создать / обновить мастера</h3>
+  <form method="POST">
+    <label for="id">id</label>
+    <input id="id" name="id" required />
+
+    <label for="name">Имя</label>
+    <input id="name" name="name" required />
+
+    <label for="slug">slug (URL)</label>
+    <input id="slug" name="slug" />
+
+    <label for="kind">Тип (йога/практики/…)</label>
+    <input id="kind" name="kind" />
+
+    <label for="directions">Направления (одно на строку)</label>
+    <textarea id="directions" name="directions" rows="3"></textarea>
+
+    <label for="bio">Био</label>
+    <textarea id="bio" name="bio" rows="2"></textarea>
+
+    <label for="photo_slot">photo_slot (плейсхолдер)</label>
+    <input id="photo_slot" name="photo_slot" />
+
+    <label for="sort">Порядок (sort)</label>
+    <input id="sort" name="sort" type="number" value="0" />
+
+    <label><input type="checkbox" name="is_resident" style="width:auto" /> Резидент</label>
+
+    <p><button class="btn" type="submit">Сохранить</button></p>
+  </form>
+</AdminLayout>

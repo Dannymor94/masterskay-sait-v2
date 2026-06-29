@@ -74,14 +74,20 @@ CREATE TABLE IF NOT EXISTS hall (
 );
 
 CREATE TABLE IF NOT EXISTS specialist (
-  id           TEXT PRIMARY KEY,
-  name         TEXT NOT NULL,
-  kind         TEXT,                               -- 'массаж'|'психолог'|…
-  bio          TEXT,
-  photo        TEXT,
-  external_url TEXT,
-  is_resident  INTEGER NOT NULL DEFAULT 0          -- 0/1. PG: boolean
+  id              TEXT PRIMARY KEY,
+  name            TEXT NOT NULL,
+  kind            TEXT,                               -- 'массаж'|'психолог'|…
+  bio             TEXT,
+  photo           TEXT,
+  external_url    TEXT,
+  is_resident     INTEGER NOT NULL DEFAULT 0,         -- 0/1. PG: boolean
+  slug            TEXT,                               -- kebab URL-slug for /mastera/[slug]
+  photo_slot      TEXT,                               -- data-photo-slot placeholder key
+  directions      TEXT NOT NULL DEFAULT '[]',         -- JSON-array of direction strings. PG: jsonb
+  sort            INTEGER NOT NULL DEFAULT 0,         -- display order
+  is_studio_master INTEGER NOT NULL DEFAULT 0         -- 0/1: studio master vs external. PG: boolean
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_specialist_slug ON specialist(slug) WHERE slug IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS slot (
   id            TEXT PRIMARY KEY,
@@ -155,6 +161,12 @@ function ensureColumn(db: Db, table: string, column: string, ddl: string): void 
 function applyColumnMigrations(db: Db): void {
   // 0003: slot.conflict_confirmed — ручное подтверждение публикации конфликта (M2-QA-1).
   ensureColumn(db, 'slot', 'conflict_confirmed', 'conflict_confirmed INTEGER NOT NULL DEFAULT 0');
+  // 0004: specialist — новые поля мастеров студии (T-master-1).
+  ensureColumn(db, 'specialist', 'slug', 'slug TEXT');
+  ensureColumn(db, 'specialist', 'photo_slot', 'photo_slot TEXT');
+  ensureColumn(db, 'specialist', 'directions', "directions TEXT NOT NULL DEFAULT '[]'");
+  ensureColumn(db, 'specialist', 'sort', 'sort INTEGER NOT NULL DEFAULT 0');
+  ensureColumn(db, 'specialist', 'is_studio_master', 'is_studio_master INTEGER NOT NULL DEFAULT 0');
 }
 
 let cachedPath: string | null = null;
