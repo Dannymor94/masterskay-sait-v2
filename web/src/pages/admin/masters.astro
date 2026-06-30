@@ -17,12 +17,14 @@ if (Astro.request.method === 'POST') {
   const directions = directionsRaw
     ? directionsRaw.split('\n').map((l) => l.trim()).filter(Boolean)
     : [];
+  const photo = String(form.get('photo') ?? '').trim() || null;
   const input = {
     id: String(form.get('id') ?? '').trim(),
     name: String(form.get('name') ?? '').trim(),
     slug: String(form.get('slug') ?? '').trim() || null,
     kind: String(form.get('kind') ?? '').trim() || null,
     bio: String(form.get('bio') ?? '').trim() || null,
+    photo,
     photo_slot: String(form.get('photo_slot') ?? '').trim() || null,
     sort: Number(form.get('sort') ?? 0) || 0,
     is_resident: form.get('is_resident') === 'on',
@@ -44,7 +46,7 @@ const user = Astro.locals.adminUser;
   <table>
     <thead>
       <tr>
-        <th>id</th><th>Имя</th><th>slug</th><th>Тип</th><th>Sort</th><th>Резидент</th><th>photo_slot</th><th></th>
+        <th>id</th><th>Имя</th><th>slug</th><th>Тип</th><th>Sort</th><th>Резидент</th><th>Фото</th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -56,7 +58,7 @@ const user = Astro.locals.adminUser;
           <td>{m.kind}</td>
           <td>{m.sort}</td>
           <td>{m.is_resident ? 'да' : 'нет'}</td>
-          <td>{m.photo_slot}</td>
+          <td>{m.photo ? <img src={m.photo} alt="" style="max-height:40px;border-radius:var(--radius-sm)" /> : '—'}</td>
           <td>
             <form method="POST" class="inline">
               <input type="hidden" name="_action" value="delete" />
@@ -93,6 +95,22 @@ const user = Astro.locals.adminUser;
     <label for="photo_slot">photo_slot (плейсхолдер)</label>
     <input id="photo_slot" name="photo_slot" />
 
+    <label>Фото</label>
+    <div class="photo-upload" id="photo-upload-master">
+      <noscript><p class="muted">Загрузка фото требует JavaScript.</p></noscript>
+      <div class="photo-upload__ui">
+        <div class="photo-upload__preview" id="master-photo-preview" style="display:none">
+          <img id="master-photo-img" src="" alt="Превью фото" style="max-width:200px;border-radius:var(--radius-md)" />
+        </div>
+        <div style="display:flex;gap:var(--space-1);align-items:center;margin-top:var(--space-1)">
+          <input type="file" id="master-file-input" accept=".jpg,.jpeg,.png,.webp" style="font-size:0.85rem" />
+          <button type="button" class="btn btn-secondary btn-sm" id="master-upload-btn">Загрузить</button>
+        </div>
+        <p id="master-upload-error" class="err" style="display:none"></p>
+      </div>
+    </div>
+    <input type="hidden" name="photo" id="photo_field" />
+
     <label for="sort">Порядок (sort)</label>
     <input id="sort" name="sort" type="number" value="0" />
 
@@ -102,3 +120,39 @@ const user = Astro.locals.adminUser;
   </form>
   </div>
 </AdminLayout>
+
+<style>
+  .photo-upload__ui { display: none; }
+</style>
+
+<script>
+  const uploadBtn = document.getElementById('master-upload-btn');
+  const uploadUi = document.getElementById('photo-upload-master')?.querySelector('.photo-upload__ui') as HTMLElement | null;
+
+  // Reveal the upload UI now that JS is available
+  if (uploadUi) uploadUi.style.display = '';
+
+  uploadBtn?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('master-file-input') as HTMLInputElement;
+    const errEl = document.getElementById('master-upload-error') as HTMLElement;
+    errEl.style.display = 'none';
+    if (!fileInput.files?.[0]) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error || 'Ошибка загрузки';
+        errEl.style.display = '';
+        return;
+      }
+      (document.getElementById('photo_field') as HTMLInputElement).value = data.url;
+      (document.getElementById('master-photo-img') as HTMLImageElement).src = data.url;
+      (document.getElementById('master-photo-preview') as HTMLElement).style.display = '';
+    } catch {
+      errEl.textContent = 'Сеть недоступна';
+      errEl.style.display = '';
+    }
+  });
+</script>
