@@ -139,6 +139,7 @@ const user = Astro.locals.adminUser;
     </tbody>
   </table>
 
+  <div class="form-section">
   <h3>Создать / обновить слот</h3>
   <form method="POST">
     <label for="id">id (slug)</label><input id="id" name="id" required />
@@ -163,4 +164,5 @@ const user = Astro.locals.adminUser;
     <label for="external_url">external_url (для external)</label><input id="external_url" name="external_url" type="url" />
     <p><button class="btn" type="submit">Сохранить</button></p>
   </form>
+  </div>
 </AdminLayout>

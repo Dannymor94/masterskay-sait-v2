@@ -56,6 +56,7 @@ const user = Astro.locals.adminUser;
     </tbody>
   </table>
 
+  <div class="form-section">
   <h3>Создать / обновить зал</h3>
   <form method="POST">
     <label for="id">id (slug)</label><input id="id" name="id" required />
@@ -67,4 +68,5 @@ const user = Astro.locals.adminUser;
     <label for="description">Описание</label><textarea id="description" name="description" rows="2"></textarea>
     <p><button class="btn" type="submit">Сохранить</button></p>
   </form>
+  </div>
 </AdminLayout>

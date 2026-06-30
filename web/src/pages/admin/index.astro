@@ -2,7 +2,7 @@
 export const prerender = false;
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { listHalls } from '../../server/halls.ts';
-import { listSpecialists } from '../../server/specialists.ts';
+import { listSpecialists, listStudioMasters } from '../../server/specialists.ts';
 import { listSlots } from '../../server/slots.ts';
 import { listEvents } from '../../server/events.ts';
 import { listContent } from '../../server/content.ts';
@@ -11,6 +11,7 @@ import { listLeads } from '../../server/leads.ts';
 
 const stats = {
   halls: listHalls().length,
+  masters: listStudioMasters().length,
   specialists: listSpecialists().length,
   slots: listSlots().length,
   conflicts: conflictSlots().length,
@@ -19,18 +20,38 @@ const stats = {
   leads: listLeads().length,
 };
 const user = Astro.locals.adminUser;
+
+const cards = [
+  { label: 'Залы', value: stats.halls, href: '/admin/halls', warn: false },
+  { label: 'Мастера', value: stats.masters, href: '/admin/masters', warn: false },
+  { label: 'Специалисты', value: stats.specialists, href: '/admin/specialists', warn: false },
+  { label: 'Расписание', value: stats.slots, href: '/admin/slots', warn: false },
+  { label: 'Конфликты', value: stats.conflicts, href: '/admin/slots', warn: stats.conflicts > 0 },
+  { label: 'События', value: stats.events, href: '/admin/events', warn: false },
+  { label: 'Контент', value: stats.content, href: '/admin/content', warn: false },
+  { label: 'Заявки', value: stats.leads, href: '/admin/leads', warn: false },
+];
 ---
 <AdminLayout title="Обзор" user={user}>
-  <table>
-    <tbody>
-      <tr><th>Залы</th><td>{stats.halls}</td></tr>
-      <tr><th>Специалисты</th><td>{stats.specialists}</td></tr>
-      <tr><th>Слоты расписания</th><td>{stats.slots} (конфликтов: {stats.conflicts})</td></tr>
-      <tr><th>События</th><td>{stats.events}</td></tr>
-      <tr><th>Контент-страницы</th><td>{stats.content}</td></tr>
-      <tr><th>Заявки</th><td>{stats.leads}</td></tr>
-    </tbody>
-  </table>
-  <p class="muted">Расписание показывает только опубликованные слоты. Конфликтные
-    (приоритет аренды, O1) публикуются вручную в разделе «Расписание».</p>
+  <div class="stats-grid">
+    {cards.map((c) => (
+      <div class="stat-card">
+        <span class="stat-card__label">{c.label}</span>
+        <span class={`stat-card__value${c.warn ? ' stat-card__value--warn' : ''}`}>
+          {c.value}
+        </span>
+        <a class="stat-card__link" href={c.href}>открыть &rarr;</a>
+      </div>
+    ))}
+  </div>
+
+  <p class="muted">
+    Расписание показывает только опубликованные слоты. Конфликтные (приоритет аренды, O1)
+    публикуются вручную в разделе «Расписание».
+    {stats.conflicts > 0 && (
+      <strong style="color:var(--state-warning)">
+        {' '}Есть {stats.conflicts} конфликт{stats.conflicts === 1 ? '' : 'а/ов'} — требуют внимания.
+      </strong>
+    )}
+  </p>
 </AdminLayout>

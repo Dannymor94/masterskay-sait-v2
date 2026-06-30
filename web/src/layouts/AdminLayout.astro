@@ -12,13 +12,14 @@ interface Props {
 const { title, user } = Astro.props;
 
 const nav = [
-  ['/admin', 'Обзор'],
-  ['/admin/halls', 'Залы'],
-  ['/admin/specialists', 'Специалисты'],
-  ['/admin/slots', 'Расписание'],
-  ['/admin/events', 'События'],
-  ['/admin/content', 'Контент'],
-  ['/admin/leads', 'Заявки'],
+  ['/admin', 'Обзор', '◈'],
+  ['/admin/halls', 'Залы', '⬡'],
+  ['/admin/masters', 'Мастера', '◉'],
+  ['/admin/specialists', 'Специалисты', '◎'],
+  ['/admin/slots', 'Расписание', '▦'],
+  ['/admin/events', 'События', '★'],
+  ['/admin/content', 'Контент', '▤'],
+  ['/admin/leads', 'Заявки', '◆'],
 ];
 const here = Astro.url.pathname;
 ---
@@ -31,50 +32,412 @@ const here = Astro.url.pathname;
     <meta name="robots" content="noindex, nofollow" />
     <title>{title} · Админка «Мастерская»</title>
     <style is:global>
-      body { margin: 0; font-family: system-ui, sans-serif; color: var(--text);
-        background: var(--bg); line-height: 1.5; }
-      .admin-wrap { display: flex; min-height: 100vh; }
-      .admin-nav { background: var(--surface); border-right: 1px solid var(--border);
-        padding: 1rem; min-width: 12rem; }
-      .admin-nav h1 { font-size: 1rem; color: var(--heading-accent); }
-      .admin-nav a { display: block; padding: .4rem .5rem; color: var(--link);
-        text-decoration: none; border-radius: 4px; }
-      .admin-nav a[aria-current="page"] { background: var(--accent-fill);
-        color: var(--btn-text); }
-      .admin-main { flex: 1; padding: 1.5rem 2rem; max-width: 70rem; }
-      table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-      th, td { border: 1px solid var(--border); padding: .4rem .6rem; text-align: left;
-        vertical-align: top; font-size: .9rem; }
-      th { background: var(--surface); }
-      form.inline { display: inline; }
-      label { display: block; margin: .5rem 0 .2rem; font-weight: 600; }
-      input, select, textarea { width: 100%; max-width: 32rem; padding: .4rem;
-        border: 1px solid var(--border); border-radius: 4px; font: inherit; }
-      .btn { background: var(--btn-bg); color: var(--btn-text); border: 0;
-        padding: .45rem .9rem; border-radius: 4px; cursor: pointer; font: inherit; }
-      .btn-secondary { background: var(--surface); color: var(--text);
-        border: 1px solid var(--border); }
-      .tag { display: inline-block; padding: .1rem .4rem; border-radius: 4px;
-        font-size: .75rem; border: 1px solid var(--border); }
-      .tag-conflict { background: var(--color-warning); color: var(--color-white); }
-      .tag-pub { background: var(--color-success); color: var(--color-white); }
-      .err { color: var(--color-error); }
-      .muted { color: var(--text-muted); }
+      *, *::before, *::after { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: var(--font-body);
+        color: var(--text);
+        background: var(--surface);
+        line-height: var(--leading-body);
+        font-size: var(--text-body);
+      }
+
+      /* === Layout === */
+      .admin-wrap {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* === Sidebar === */
+      .admin-sidebar {
+        width: 14rem;
+        flex-shrink: 0;
+        background: var(--color-wood-darkest);
+        color: var(--color-cream);
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+
+      .admin-sidebar__logo {
+        padding: var(--space-3) var(--space-2);
+        border-bottom: 1px solid var(--color-wood-dark);
+      }
+
+      .admin-sidebar__logo-title {
+        font-family: var(--font-headings);
+        font-size: var(--text-h3);
+        font-weight: var(--weight-h3);
+        color: var(--color-orange-400);
+        margin: 0 0 0.15rem;
+        line-height: 1.2;
+      }
+
+      .admin-sidebar__logo-sub {
+        font-size: 0.7rem;
+        color: var(--color-sand);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .admin-sidebar__nav {
+        flex: 1;
+        padding: var(--space-2) 0;
+        list-style: none;
+        margin: 0;
+      }
+
+      .admin-sidebar__nav-item {
+        margin: 0;
+      }
+
+      .admin-sidebar__nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem var(--space-2);
+        color: var(--color-sand);
+        text-decoration: none;
+        font-size: 0.88rem;
+        transition: background 0.12s, color 0.12s;
+        border-left: 3px solid transparent;
+      }
+
+      .admin-sidebar__nav-link:hover {
+        background: var(--color-wood-dark);
+        color: var(--color-cream);
+      }
+
+      .admin-sidebar__nav-link[aria-current="page"] {
+        background: var(--color-wood-dark);
+        color: var(--color-orange-400);
+        border-left-color: var(--color-orange);
+        font-weight: 600;
+      }
+
+      .admin-sidebar__nav-icon {
+        width: 1rem;
+        text-align: center;
+        font-style: normal;
+        flex-shrink: 0;
+        font-size: 0.8rem;
+        color: var(--color-orange-400);
+      }
+
+      .admin-sidebar__footer {
+        padding: var(--space-2);
+        border-top: 1px solid var(--color-wood-dark);
+      }
+
+      .admin-sidebar__user {
+        font-size: 0.75rem;
+        color: var(--color-sand);
+        margin-bottom: 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* === Main === */
+      .admin-main {
+        flex: 1;
+        padding: var(--space-3) var(--space-4);
+        max-width: 72rem;
+        background: var(--bg);
+        min-height: 100vh;
+      }
+
+      .admin-main__heading {
+        font-family: var(--font-headings);
+        font-size: var(--text-h2);
+        font-weight: var(--weight-h2);
+        color: var(--heading);
+        margin: 0 0 var(--space-3);
+        padding-bottom: var(--space-2);
+        border-bottom: 1px solid var(--border);
+        line-height: var(--leading-h2);
+      }
+
+      /* === Tables === */
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: var(--space-2) 0;
+        font-size: 0.88rem;
+        background: var(--bg);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--color-ink) 8%, transparent);
+      }
+
+      th {
+        background: var(--surface);
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.6rem 0.9rem;
+        text-align: left;
+        border-bottom: 2px solid var(--border);
+      }
+
+      td {
+        padding: 0.65rem 0.9rem;
+        vertical-align: middle;
+        border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+        color: var(--text);
+      }
+
+      tbody tr:nth-child(even) {
+        background: color-mix(in srgb, var(--surface) 60%, transparent);
+      }
+
+      tbody tr:hover {
+        background: color-mix(in srgb, var(--accent-fill) 8%, transparent);
+      }
+
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* === Forms === */
+      .form-section {
+        margin-top: var(--space-3);
+        padding: var(--space-3);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        max-width: 32rem;
+      }
+
+      .form-section h3 {
+        margin: 0 0 var(--space-2);
+        font-family: var(--font-headings);
+        font-size: var(--text-h3);
+        font-weight: var(--weight-h3);
+        color: var(--heading);
+      }
+
+      label {
+        display: block;
+        margin: var(--space-1) 0 0.25rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text);
+      }
+
+      input:not([type="checkbox"]),
+      select,
+      textarea {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 0.65rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font: inherit;
+        font-size: 0.9rem;
+        color: var(--text);
+        background: var(--bg);
+        transition: border-color 0.12s, box-shadow 0.12s;
+      }
+
+      input:not([type="checkbox"]):focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent-fill);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-fill) 20%, transparent);
+      }
+
+      /* === Buttons === */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: var(--btn-bg);
+        color: var(--btn-text);
+        border: 0;
+        padding: 0.5rem 1.1rem;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.12s, transform 0.08s;
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        background: var(--btn-bg-hover);
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn-secondary {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .btn-secondary:hover {
+        background: var(--surface);
+      }
+
+      .btn-danger {
+        background: var(--color-error);
+        color: var(--color-white);
+        border: 0;
+      }
+
+      .btn-danger:hover {
+        background: color-mix(in srgb, var(--color-error) 80%, var(--color-ink));
+      }
+
+      .btn-sm {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.8rem;
+      }
+
+      /* === Utility === */
+      form.inline {
+        display: inline;
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        letter-spacing: 0.03em;
+      }
+
+      .tag-conflict {
+        background: var(--color-warning);
+        color: var(--color-white);
+        border-color: var(--color-warning);
+      }
+
+      .tag-pub {
+        background: var(--color-success);
+        color: var(--color-white);
+        border-color: var(--color-success);
+      }
+
+      .err {
+        color: var(--state-error);
+        font-size: 0.88rem;
+        padding: 0.5rem 0.75rem;
+        background: color-mix(in srgb, var(--state-error) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--state-error) 30%, transparent);
+        border-radius: var(--radius-sm);
+        margin: var(--space-1) 0;
+      }
+
+      .muted {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      /* === Stat cards (admin/index) === */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+      }
+
+      .stat-card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-3);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        transition: box-shadow 0.12s;
+      }
+
+      .stat-card:hover {
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--color-ink) 12%, transparent);
+      }
+
+      .stat-card__label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .stat-card__value {
+        font-size: 2.2rem;
+        font-family: var(--font-headings);
+        font-weight: var(--weight-h1);
+        color: var(--heading);
+        line-height: 1;
+      }
+
+      .stat-card__value--warn {
+        color: var(--state-warning);
+      }
+
+      .stat-card__link {
+        font-size: 0.78rem;
+        color: var(--link);
+        text-decoration: none;
+        margin-top: auto;
+      }
+
+      .stat-card__link:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
     <div class="admin-wrap">
-      <nav class="admin-nav" aria-label="Навигация админки">
-        <h1>Мастерская · админ</h1>
-        {nav.map(([href, label]) => (
-          <a href={href} aria-current={here === href ? 'page' : undefined}>{label}</a>
-        ))}
-        <form method="POST" action="/admin/logout" class="inline" style="margin-top:1rem">
-          <button class="btn btn-secondary" type="submit">Выйти{user ? ` (${user})` : ''}</button>
-        </form>
-      </nav>
+      <aside class="admin-sidebar" aria-label="Навигация админки">
+        <div class="admin-sidebar__logo">
+          <p class="admin-sidebar__logo-title">Мастерская</p>
+          <span class="admin-sidebar__logo-sub">Панель управления</span>
+        </div>
+
+        <ul class="admin-sidebar__nav" role="list">
+          {nav.map(([href, label, icon]) => (
+            <li class="admin-sidebar__nav-item">
+              <a
+                href={href}
+                class="admin-sidebar__nav-link"
+                aria-current={here === href ? 'page' : undefined}
+              >
+                <i class="admin-sidebar__nav-icon" aria-hidden="true">{icon}</i>
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <div class="admin-sidebar__footer">
+          {user && <p class="admin-sidebar__user" title={user}>👤 {user}</p>}
+          <form method="POST" action="/admin/logout">
+            <button class="btn btn-secondary" type="submit" style="width:100%;justify-content:center">
+              Выйти
+            </button>
+          </form>
+        </div>
+      </aside>
+
       <main class="admin-main">
-        <h2>{title}</h2>
+        <h2 class="admin-main__heading">{title}</h2>
         <slot />
       </main>
     </div>

@@ -51,6 +51,7 @@ const user = Astro.locals.adminUser;
     </tbody>
   </table>
 
+  <div class="form-section">
   <h3>Создать / обновить специалиста</h3>
   <form method="POST">
     <label for="id">id (slug)</label><input id="id" name="id" required />
@@ -61,4 +62,5 @@ const user = Astro.locals.adminUser;
     <label><input type="checkbox" name="is_resident" style="width:auto" /> Резидент</label>
     <p><button class="btn" type="submit">Сохранить</button></p>
   </form>
+  </div>
 </AdminLayout>
