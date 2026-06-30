@@ -28,6 +28,7 @@ interface Props {
   imageAlt: string;
   photoSlot: string; // data-photo-slot маркер для замены на реальное фото одним файлом
   hallValue: string; // значение для предзаполнения формы (?hall=...)
+  photoUrl?: string | null; // реальное фото из БД; если есть — показывать вместо плейсхолдера
 }
 const {
   name,
@@ -39,6 +40,7 @@ const {
   imageAlt,
   photoSlot,
   hallValue,
+  photoUrl,
 } = Astro.props;
 
 // Ссылка ведёт к форме с предзаполнением зала: query ДО хеша, чтобы это был
@@ -48,18 +50,34 @@ const ctaHref = `/arenda?hall=${encodeURIComponent(hallValue)}#zayavka`;
 
 <article class="hall">
   <figure class="hall__media">
-    {/* Ниже сгиба → lazy. Оптимизация Astro <Image> (sharp), кадр 4:3 (1200×900). */}
-    <Image
-      src={image}
-      width={1200}
-      height={900}
-      alt={imageAlt}
-      widths={[320, 480, 640]}
-      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-      loading="lazy"
-      decoding="async"
-      data-photo-slot={photoSlot}
-    />
+    {photoUrl
+      ? (
+        /* Реальное фото из БД — обычный <img>, без Astro Image optimization (URL динамический). */
+        <img
+          src={photoUrl}
+          width="1200"
+          height="900"
+          alt={imageAlt}
+          loading="lazy"
+          decoding="async"
+          data-photo-slot={photoSlot}
+        />
+      )
+      : (
+        /* Плейсхолдер — оптимизация Astro <Image> (sharp), кадр 4:3. */
+        <Image
+          src={image}
+          width={1200}
+          height={900}
+          alt={imageAlt}
+          widths={[320, 480, 640]}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          loading="lazy"
+          decoding="async"
+          data-photo-slot={photoSlot}
+        />
+      )
+    }
   </figure>
 
   <div class="hall__body">

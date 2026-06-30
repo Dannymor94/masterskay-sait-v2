@@ -11,6 +11,12 @@ import HallCard from './HallCard.astro';
 import hallBigImg from '../assets/placeholders/hall-big.jpg';
 import hallSmallImg from '../assets/placeholders/hall-small.jpg';
 import hallTeaImg from '../assets/placeholders/hall-tea.jpg';
+import { listHalls } from '../server/halls.ts';
+
+// Получаем реальные фото из БД; компонент встраивается в SSR-страницу, поэтому
+// серверный импорт работает без client:* директив.
+const dbHalls = listHalls();
+const hallPhotoMap = new Map(dbHalls.map((h) => [h.id, h.photo_url]));
 
 const halls = [
   {
@@ -78,7 +84,9 @@ const halls = [
     </header>
 
     <div class="halls__grid">
-      {halls.map((hall) => <HallCard {...hall} />)}
+      {halls.map((hall) => (
+        <HallCard {...hall} photoUrl={hallPhotoMap.get(hall.hallValue) ?? null} />
+      ))}
     </div>
   </div>
 </section>

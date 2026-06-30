@@ -65,13 +65,25 @@ const pageDescription = master.bio
       <figure
         class="master-profile__media"
         data-photo-slot={master.photo_slot ?? `master-${master.id}`}
-        aria-hidden="true"
+        aria-hidden={master.photo ? undefined : 'true'}
       >
-        <div
-          class="master-profile__photo-placeholder"
-          role="img"
-          aria-label={`Фото: ${master.name}`}
-        ></div>
+        {master.photo
+          ? (
+            <img
+              src={master.photo}
+              alt={`Фото: ${master.name}`}
+              class="master-profile__photo-real"
+              loading="lazy"
+            />
+          )
+          : (
+            <div
+              class="master-profile__photo-placeholder"
+              role="img"
+              aria-label={`Фото: ${master.name}`}
+            ></div>
+          )
+        }
       </figure>
 
       <div class="master-profile__meta">
@@ -198,6 +210,13 @@ const pageDescription = master.bio
     width: 100%;
     aspect-ratio: 4 / 3;
     background: color-mix(in srgb, var(--surface) 80%, var(--border));
+  }
+
+  .master-profile__photo-real {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
   }
 
   .master-profile__meta {
