@@ -21,6 +21,7 @@ if (Astro.request.method === 'POST') {
       kind: String(form.get('kind') ?? '').trim() || null,
       bio: String(form.get('bio') ?? '').trim() || null,
       external_url: String(form.get('external_url') ?? '').trim() || null,
+      photo: String(form.get('photo') ?? '').trim() || null,
       is_resident: form.get('is_resident') === 'on',
     };
     updateSpecialist(id, patch);
@@ -55,6 +56,31 @@ const user = Astro.locals.adminUser;
       <label for="edit-bio">Био</label>
       <textarea id="edit-bio" name="bio" rows="4">{specialist.bio ?? ''}</textarea>
 
+      <label for="edit-photo-url">Фото — ссылка</label>
+      <input id="edit-photo-url" name="photo" type="text" placeholder="https://... или /uploads/..." value={specialist.photo ?? ''} />
+
+      <label>Фото — загрузить файл</label>
+      <div class="photo-upload" id="sp-photo-upload">
+        <noscript><p class="muted">Загрузка файла требует JavaScript.</p></noscript>
+        {specialist.photo && (
+          <img
+            src={specialist.photo}
+            alt="Текущее фото"
+            style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)"
+          />
+        )}
+        <div class="photo-upload__ui">
+          <div id="sp-photo-preview" style="display:none">
+            <img id="sp-photo-img" src="" alt="Превью" style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)" />
+          </div>
+          <div style="display:flex;gap:var(--space-1);align-items:center;margin-top:var(--space-1)">
+            <input type="file" id="sp-file-input" accept=".jpg,.jpeg,.png,.webp" style="font-size:0.85rem" />
+            <button type="button" class="btn btn-secondary btn-sm" id="sp-upload-btn">Загрузить</button>
+          </div>
+          <p id="sp-upload-error" class="err" style="display:none"></p>
+        </div>
+      </div>
+
       <label>
         <input
           type="checkbox"
@@ -72,3 +98,36 @@ const user = Astro.locals.adminUser;
     </form>
   </div>
 </AdminLayout>
+
+<style>
+  .photo-upload__ui { display: none; }
+</style>
+
+<script>
+  const uploadUi = document.getElementById('sp-photo-upload')?.querySelector('.photo-upload__ui') as HTMLElement | null;
+  if (uploadUi) uploadUi.style.display = '';
+
+  document.getElementById('sp-upload-btn')?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('sp-file-input') as HTMLInputElement;
+    const errEl = document.getElementById('sp-upload-error') as HTMLElement;
+    errEl.style.display = 'none';
+    if (!fileInput.files?.[0]) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      const res = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error || 'Ошибка загрузки';
+        errEl.style.display = '';
+        return;
+      }
+      (document.getElementById('edit-photo-url') as HTMLInputElement).value = data.url;
+      (document.getElementById('sp-photo-img') as HTMLImageElement).src = data.url;
+      (document.getElementById('sp-photo-preview') as HTMLElement).style.display = '';
+    } catch {
+      errEl.textContent = 'Сеть недоступна';
+      errEl.style.display = '';
+    }
+  });
+</script>

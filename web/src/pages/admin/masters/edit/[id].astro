@@ -67,7 +67,16 @@ const user = Astro.locals.adminUser;
       <label for="edit_photo_slot">photo_slot (плейсхолдер)</label>
       <input id="edit_photo_slot" name="photo_slot" value={master.photo_slot ?? ''} />
 
-      <label>Фото</label>
+      <label for="edit_photo_url_input">Фото — ссылка</label>
+      <input
+        id="edit_photo_url_input"
+        type="text"
+        placeholder="https://... или /uploads/..."
+        value={master.photo ?? ''}
+        oninput="document.getElementById('edit_photo_field').value = this.value"
+      />
+
+      <label>Фото — загрузить файл</label>
       <div class="photo-upload" id="edit-photo-upload">
         <noscript><p class="muted">Загрузка фото требует JavaScript.</p></noscript>
         {master.photo && (
@@ -149,6 +158,7 @@ const user = Astro.locals.adminUser;
         return;
       }
       (document.getElementById('edit_photo_field') as HTMLInputElement).value = data.url;
+      (document.getElementById('edit_photo_url_input') as HTMLInputElement).value = data.url;
       (document.getElementById('edit-master-photo-img') as HTMLImageElement).src = data.url;
       (document.getElementById('edit-master-photo-preview') as HTMLElement).style.display = '';
     } catch {
