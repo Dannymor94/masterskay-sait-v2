@@ -24,7 +24,7 @@ if (Astro.request.method === 'POST') {
     equipment: String(form.get('equipment') ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     rate_subscription: String(form.get('rate_subscription') ?? '').trim() || null,
     description: String(form.get('description') ?? '').trim() || null,
-    photos: photo_url ? [photo_url] : [],
+    photo_url,
   };
   const v = validateHall(input);
   if (!v.ok) {
@@ -46,7 +46,7 @@ const user = Astro.locals.adminUser;
         <tr>
           <td>{h.id}</td><td>{h.name}</td><td>{h.area_m2}</td><td>{h.capacity}</td>
           <td>{h.equipment.join(', ')}</td>
-          <td>{h.photos.length > 0 ? <img src={h.photos[0]} alt="" style="max-height:40px;border-radius:var(--radius-sm)" /> : '—'}</td>
+          <td>{h.photo_url ? <img src={h.photo_url} alt="" style="max-height:40px;border-radius:var(--radius-sm)" /> : '—'}</td>
           <td>
             <form method="POST" class="inline">
               <input type="hidden" name="_action" value="delete" />
@@ -110,7 +110,7 @@ const user = Astro.locals.adminUser;
     const fd = new FormData();
     fd.append('file', fileInput.files[0]);
     try {
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const res = await fetch('/admin/api/upload', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok || data.error) {
         errEl.textContent = data.error || 'Ошибка загрузки';
