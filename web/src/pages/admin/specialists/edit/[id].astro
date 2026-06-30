@@ -1,0 +1,74 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getSpecialist, updateSpecialist } from '../../../../server/specialists.ts';
+
+if (!Astro.locals.adminUser) {
+  return Astro.redirect('/admin/login', 303);
+}
+
+const { id } = Astro.params as { id: string };
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const name = String(form.get('name') ?? '').trim();
+  if (!name) {
+    error = 'Укажите имя/название.';
+  } else {
+    const patch = {
+      name,
+      kind: String(form.get('kind') ?? '').trim() || null,
+      bio: String(form.get('bio') ?? '').trim() || null,
+      external_url: String(form.get('external_url') ?? '').trim() || null,
+      is_resident: form.get('is_resident') === 'on',
+    };
+    updateSpecialist(id, patch);
+    return Astro.redirect('/admin/specialists', 303);
+  }
+}
+
+const specialist = getSpecialist(id);
+if (!specialist) {
+  return Astro.redirect('/admin/specialists', 303);
+}
+
+const user = Astro.locals.adminUser;
+---
+
+<AdminLayout title="Редактировать специалиста" user={user}>
+  <p><a href="/admin/specialists" class="btn btn-secondary btn-sm">&larr; Назад</a></p>
+  {error && <p class="err" role="alert">{error}</p>}
+
+  <div class="form-section" style="max-width:36rem">
+    <h3>Специалист: {specialist.id}</h3>
+    <form method="POST">
+      <label for="edit-name">Имя/название</label>
+      <input id="edit-name" name="name" required value={specialist.name} />
+
+      <label for="edit-kind">Тип (массаж/психолог/йога…)</label>
+      <input id="edit-kind" name="kind" value={specialist.kind ?? ''} />
+
+      <label for="edit-external_url">Внешняя ссылка (для CTA external)</label>
+      <input id="edit-external_url" name="external_url" type="url" placeholder="https://..." value={specialist.external_url ?? ''} />
+
+      <label for="edit-bio">Био</label>
+      <textarea id="edit-bio" name="bio" rows="4">{specialist.bio ?? ''}</textarea>
+
+      <label>
+        <input
+          type="checkbox"
+          name="is_resident"
+          style="width:auto"
+          checked={specialist.is_resident === 1}
+        />
+        {' '}Резидент
+      </label>
+
+      <p style="display:flex;gap:var(--space-2);margin-top:var(--space-3)">
+        <button class="btn" type="submit">Сохранить</button>
+        <a href="/admin/specialists" class="btn btn-secondary">← Назад</a>
+      </p>
+    </form>
+  </div>
+</AdminLayout>

@@ -40,7 +40,7 @@ const user = Astro.locals.adminUser;
           <td>{s.id}</td><td>{s.name}</td><td>{s.kind}</td>
           <td>{s.is_resident ? 'да' : 'нет'}</td><td>{s.external_url}</td>
           <td style="display:flex;gap:var(--space-1);align-items:center;flex-wrap:wrap">
-            <a href={`/admin/masters/edit/${s.id}`} class="btn btn-secondary btn-sm">Редактировать</a>
+            <a href={`/admin/specialists/edit/${s.id}`} class="btn btn-secondary btn-sm">Редактировать</a>
             <form method="POST" class="inline">
               <input type="hidden" name="_action" value="delete" />
               <input type="hidden" name="id" value={s.id} />
