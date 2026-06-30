@@ -42,9 +42,18 @@ const LEAD =
               <figure
                 class="master-card__media"
                 data-photo-slot={master.photo_slot ?? `master-${master.id}`}
-                aria-hidden="true"
+                aria-hidden={master.photo ? undefined : 'true'}
               >
-                <div class="master-card__photo-placeholder" role="img" aria-label={`Фото: ${master.name}`}></div>
+                {master.photo ? (
+                  <img
+                    src={master.photo}
+                    alt={`Фото: ${master.name}`}
+                    class="master-card__photo-real"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="master-card__photo-placeholder" role="img" aria-label={`Фото: ${master.name}`}></div>
+                )}
               </figure>
               <div class="master-card__body">
                 <h2 class="master-card__name">{master.name}</h2>
@@ -145,6 +154,13 @@ const LEAD =
     width: 100%;
     aspect-ratio: 4 / 3;
     background: color-mix(in srgb, var(--surface) 80%, var(--border));
+  }
+
+  .master-card__photo-real {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
   }
 
   .master-card__body {

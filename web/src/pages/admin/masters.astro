@@ -59,11 +59,12 @@ const user = Astro.locals.adminUser;
           <td>{m.sort}</td>
           <td>{m.is_resident ? 'да' : 'нет'}</td>
           <td>{m.photo ? <img src={m.photo} alt="" style="max-height:40px;border-radius:var(--radius-sm)" /> : '—'}</td>
-          <td>
+          <td style="display:flex;gap:var(--space-1);flex-wrap:wrap;align-items:center">
+            <a href={`/admin/masters/edit/${m.id}`} class="btn btn-secondary btn-sm">Редактировать</a>
             <form method="POST" class="inline">
               <input type="hidden" name="_action" value="delete" />
               <input type="hidden" name="id" value={m.id} />
-              <button class="btn btn-secondary" type="submit">Удалить</button>
+              <button class="btn btn-secondary btn-sm" type="submit">Удалить</button>
             </form>
           </td>
         </tr>

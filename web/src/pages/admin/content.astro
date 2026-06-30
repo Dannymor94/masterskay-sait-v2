@@ -37,6 +37,7 @@ const user = Astro.locals.adminUser;
           <td>{p.hero_image ? <img src={p.hero_image} alt="" width="48" height="36" style="object-fit:cover;border-radius:var(--radius-sm)"> : '—'}</td>
           <td class="muted">{p.updated_at}</td>
           <td>
+            <a href={`/admin/content/edit/${p.slug}`} class="btn btn-secondary">Редактировать</a>
             <form method="POST" class="inline">
               <input type="hidden" name="_action" value="delete" />
               <input type="hidden" name="slug" value={p.slug} />

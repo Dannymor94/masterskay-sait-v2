@@ -1,0 +1,159 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getSpecialist, updateSpecialist } from '../../../../server/specialists.ts';
+
+if (!Astro.locals.adminUser) {
+  return Astro.redirect('/admin/login', 303);
+}
+
+const { id } = Astro.params as { id: string };
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const directionsRaw = String(form.get('directions') ?? '').trim();
+  const directions = directionsRaw
+    ? directionsRaw.split('\n').map((l) => l.trim()).filter(Boolean)
+    : [];
+  const patch = {
+    name: String(form.get('name') ?? '').trim(),
+    slug: String(form.get('slug') ?? '').trim() || null,
+    kind: String(form.get('kind') ?? '').trim() || null,
+    bio: String(form.get('bio') ?? '').trim() || null,
+    photo: String(form.get('photo') ?? '').trim() || null,
+    photo_slot: String(form.get('photo_slot') ?? '').trim() || null,
+    sort: Number(form.get('sort') ?? 0) || 0,
+    is_resident: form.get('is_resident') === 'on',
+    directions,
+  };
+  if (!patch.name) {
+    error = 'Укажите имя/название.';
+  } else {
+    updateSpecialist(id, patch);
+    return Astro.redirect('/admin/masters', 303);
+  }
+}
+
+const master = getSpecialist(id);
+if (!master) {
+  return Astro.redirect('/admin/masters', 303);
+}
+
+const user = Astro.locals.adminUser;
+---
+
+<AdminLayout title="Редактировать мастера" user={user}>
+  {error && <p class="err" role="alert">{error}</p>}
+
+  <div class="form-section" style="max-width:36rem">
+    <form method="POST">
+      <label for="edit_name">Имя</label>
+      <input id="edit_name" name="name" required value={master.name} />
+
+      <label for="edit_slug">slug (URL)</label>
+      <input id="edit_slug" name="slug" value={master.slug ?? ''} />
+
+      <label for="edit_kind">Тип (йога/практики/…)</label>
+      <input id="edit_kind" name="kind" value={master.kind ?? ''} />
+
+      <label for="edit_directions">Направления (одно на строку)</label>
+      <textarea id="edit_directions" name="directions" rows="4">{master.directions.join('\n')}</textarea>
+
+      <label for="edit_bio">Био</label>
+      <textarea id="edit_bio" name="bio" rows="4">{master.bio ?? ''}</textarea>
+
+      <label for="edit_photo_slot">photo_slot (плейсхолдер)</label>
+      <input id="edit_photo_slot" name="photo_slot" value={master.photo_slot ?? ''} />
+
+      <label>Фото</label>
+      <div class="photo-upload" id="edit-photo-upload">
+        <noscript><p class="muted">Загрузка фото требует JavaScript.</p></noscript>
+        {master.photo && (
+          <div class="edit-photo-current">
+            <img
+              src={master.photo}
+              alt="Текущее фото мастера"
+              style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)"
+            />
+          </div>
+        )}
+        <div class="photo-upload__ui">
+          <div class="photo-upload__preview" id="edit-master-photo-preview" style="display:none">
+            <img
+              id="edit-master-photo-img"
+              src=""
+              alt="Превью нового фото"
+              style="max-width:200px;border-radius:var(--radius-md)"
+            />
+          </div>
+          <div style="display:flex;gap:var(--space-1);align-items:center;margin-top:var(--space-1)">
+            <input
+              type="file"
+              id="edit-master-file-input"
+              accept=".jpg,.jpeg,.png,.webp"
+              style="font-size:0.85rem"
+            />
+            <button type="button" class="btn btn-secondary btn-sm" id="edit-master-upload-btn">
+              Загрузить
+            </button>
+          </div>
+          <p id="edit-master-upload-error" class="err" style="display:none"></p>
+        </div>
+      </div>
+      <input type="hidden" name="photo" id="edit_photo_field" value={master.photo ?? ''} />
+
+      <label for="edit_sort">Порядок (sort)</label>
+      <input id="edit_sort" name="sort" type="number" value={master.sort} />
+
+      <label>
+        <input
+          type="checkbox"
+          name="is_resident"
+          style="width:auto"
+          checked={master.is_resident === 1}
+        />
+        {' '}Резидент
+      </label>
+
+      <p style="display:flex;gap:var(--space-2);margin-top:var(--space-3)">
+        <button class="btn" type="submit">Сохранить</button>
+        <a href="/admin/masters" class="btn btn-secondary">← Назад</a>
+      </p>
+    </form>
+  </div>
+</AdminLayout>
+
+<style>
+  .photo-upload__ui { display: none; }
+</style>
+
+<script>
+  const uploadUi = document.getElementById('edit-photo-upload')?.querySelector('.photo-upload__ui') as HTMLElement | null;
+  if (uploadUi) uploadUi.style.display = '';
+
+  document.getElementById('edit-master-upload-btn')?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('edit-master-file-input') as HTMLInputElement;
+    const errEl = document.getElementById('edit-master-upload-error') as HTMLElement;
+    errEl.style.display = 'none';
+    if (!fileInput.files?.[0]) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      const res = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error || 'Ошибка загрузки';
+        errEl.style.display = '';
+        return;
+      }
+      (document.getElementById('edit_photo_field') as HTMLInputElement).value = data.url;
+      (document.getElementById('edit-master-photo-img') as HTMLImageElement).src = data.url;
+      (document.getElementById('edit-master-photo-preview') as HTMLElement).style.display = '';
+    } catch {
+      errEl.textContent = 'Сеть недоступна';
+      errEl.style.display = '';
+    }
+  });
+</script>

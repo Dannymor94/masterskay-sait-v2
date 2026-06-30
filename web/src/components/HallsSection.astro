@@ -17,6 +17,7 @@ import { listHalls } from '../server/halls.ts';
 // серверный импорт работает без client:* директив.
 const dbHalls = listHalls();
 const hallPhotoMap = new Map(dbHalls.map((h) => [h.id, h.photo_url]));
+const hallDbMap = new Map(dbHalls.map((h) => [h.id, h]));
 
 const halls = [
   {
@@ -85,7 +86,14 @@ const halls = [
 
     <div class="halls__grid">
       {halls.map((hall) => (
-        <HallCard {...hall} photoUrl={hallPhotoMap.get(hall.hallValue) ?? null} />
+        <HallCard
+          {...hall}
+          photoUrl={hallPhotoMap.get(hall.hallValue) ?? null}
+          dbName={hallDbMap.get(hall.hallValue)?.name ?? null}
+          dbDescription={hallDbMap.get(hall.hallValue)?.description ?? null}
+          dbEquipment={hallDbMap.get(hall.hallValue)?.equipment ?? null}
+          dbRateNote={hallDbMap.get(hall.hallValue)?.rate_hour ?? hallDbMap.get(hall.hallValue)?.rate_subscription ?? null}
+        />
       ))}
     </div>
   </div>

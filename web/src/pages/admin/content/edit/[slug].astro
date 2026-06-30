@@ -1,0 +1,114 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getContent, updateContent } from '../../../../server/content.ts';
+
+if (!Astro.locals.adminUser) {
+  return Astro.redirect('/admin/login', 303);
+}
+
+const { slug } = Astro.params;
+const page = getContent(slug!);
+if (!page) {
+  return Astro.redirect('/admin/content', 303);
+}
+
+let error = '';
+let current = { ...page };
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const patch = {
+    title: String(form.get('title') ?? '').trim(),
+    body: String(form.get('body') ?? ''),
+    meta_description: String(form.get('meta_description') ?? '').trim() || null,
+    hero_image: String(form.get('hero_image') ?? '').trim() || null,
+  };
+  const updated = updateContent(slug!, patch);
+  if (updated) {
+    return Astro.redirect('/admin/content', 303);
+  } else {
+    error = 'Не удалось сохранить изменения.';
+    current = { ...current, ...patch };
+  }
+}
+
+const user = Astro.locals.adminUser;
+---
+<AdminLayout title="Редактировать страницу" user={user}>
+  <p><a href="/admin/content">← Назад</a></p>
+
+  {error && <p class="err" role="alert">{error}</p>}
+
+  <form method="POST">
+    <label for="edit-title">Заголовок</label>
+    <input id="edit-title" name="title" required value={current.title} />
+
+    <label for="edit-meta_description">meta description</label>
+    <input id="edit-meta_description" name="meta_description" value={current.meta_description ?? ''} />
+
+    <label for="edit-body">Тело (markdown)</label>
+    <textarea id="edit-body" name="body" rows={12}>{current.body ?? ''}</textarea>
+
+    <label>Обложка (hero_image)</label>
+    <div class="photo-upload" id="edit-photo-upload">
+      <noscript><p class="muted">Загрузка фото требует JavaScript.</p></noscript>
+      <div class="photo-upload__ui">
+        <div id="edit-content-photo-preview" style={current.hero_image ? '' : 'display:none'}>
+          <img id="edit-content-photo-img" src={current.hero_image ?? ''} alt="Превью" style="max-width:200px;border-radius:var(--radius-md);margin-bottom:var(--space-1)">
+        </div>
+        <div style="display:flex;gap:var(--space-1);align-items:center">
+          <input type="file" id="edit-content-file-input" accept=".jpg,.jpeg,.png,.webp" style="font-size:0.85rem">
+          <button type="button" class="btn btn-secondary btn-sm" id="edit-content-upload-btn">Загрузить</button>
+        </div>
+        <p id="edit-content-upload-error" class="err" style="display:none"></p>
+      </div>
+    </div>
+    <input type="hidden" name="hero_image" id="edit-hero_image_field" value={current.hero_image ?? ''}>
+
+    <p><button class="btn" type="submit">Сохранить</button></p>
+  </form>
+</AdminLayout>
+
+<style>
+  .photo-upload__ui { display: none; }
+</style>
+
+<script>
+  const uploadWidget = document.getElementById('edit-photo-upload');
+  if (uploadWidget) {
+    const ui = uploadWidget.querySelector('.photo-upload__ui') as HTMLElement | null;
+    if (ui) ui.style.display = '';
+  }
+
+  const uploadBtn = document.getElementById('edit-content-upload-btn');
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', async () => {
+      const fileInput = document.getElementById('edit-content-file-input') as HTMLInputElement | null;
+      const errEl = document.getElementById('edit-content-upload-error') as HTMLElement | null;
+      if (!errEl) return;
+      errEl.style.display = 'none';
+      if (!fileInput?.files?.[0]) return;
+      const fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      try {
+        const res = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          errEl.textContent = data.error || 'Ошибка';
+          errEl.style.display = '';
+          return;
+        }
+        const hiddenField = document.getElementById('edit-hero_image_field') as HTMLInputElement | null;
+        const previewImg = document.getElementById('edit-content-photo-img') as HTMLImageElement | null;
+        const previewBox = document.getElementById('edit-content-photo-preview') as HTMLElement | null;
+        if (hiddenField) hiddenField.value = data.url;
+        if (previewImg) previewImg.src = data.url;
+        if (previewBox) previewBox.style.display = '';
+      } catch {
+        errEl.textContent = 'Сеть недоступна';
+        errEl.style.display = '';
+      }
+    });
+  }
+</script>

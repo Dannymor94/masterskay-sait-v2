@@ -29,6 +29,10 @@ interface Props {
   photoSlot: string; // data-photo-slot маркер для замены на реальное фото одним файлом
   hallValue: string; // значение для предзаполнения формы (?hall=...)
   photoUrl?: string | null; // реальное фото из БД; если есть — показывать вместо плейсхолдера
+  dbName?: string | null;        // override from DB admin
+  dbDescription?: string | null; // override from DB admin
+  dbEquipment?: string[] | null; // override from DB admin
+  dbRateNote?: string | null;    // override from DB admin (rate_hour ?? rate_subscription)
 }
 const {
   name,
@@ -41,7 +45,16 @@ const {
   photoSlot,
   hallValue,
   photoUrl,
+  dbName,
+  dbDescription,
+  dbEquipment,
+  dbRateNote,
 } = Astro.props;
+
+const displayName = dbName ?? name;
+const displayDescription = dbDescription ?? description;
+const displayEquipment = dbEquipment ?? equipment;
+const displayRateNote = dbRateNote ?? rateNote;
 
 // Ссылка ведёт к форме с предзаполнением зала: query ДО хеша, чтобы это был
 // настоящий ?hall=, который читается и на сервере (M1), и в JS (frontend T0-6).
@@ -81,22 +94,21 @@ const ctaHref = `/arenda?hall=${encodeURIComponent(hallValue)}#zayavka`;
   </figure>
 
   <div class="hall__body">
-    <h3 class="hall__name">{name}</h3>
+    <h3 class="hall__name">{displayName}</h3>
 
     <ul class="hall__badges" aria-label="Параметры зала">
       {badges.map((b) => <li class="hall__badge">{b}</li>)}
     </ul>
 
-    <p class="hall__desc">{description}</p>
+    <p class="hall__desc">{displayDescription}</p>
 
     <h4 class="hall__sub">Оснащение</h4>
     <ul class="hall__equip">
-      {equipment.map((item) => <li>{item}</li>)}
+      {displayEquipment.map((item) => <li>{item}</li>)}
     </ul>
 
     <div class="hall__footer">
-      {/* TODO O2: заменить текст-заглушку на реальную ставку (месяц/абонемент). */}
-      <p class="hall__rate">{rateNote}</p>
+      <p class="hall__rate">{displayRateNote}</p>
       <Button variant="secondary" href={ctaHref}>Хочу вести здесь</Button>
     </div>
   </div>

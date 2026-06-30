@@ -1,0 +1,130 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getHall, updateHall } from '../../../../server/halls.ts';
+
+if (!Astro.locals.adminUser) {
+  return Astro.redirect('/admin/login', 303);
+}
+
+const { id } = Astro.params;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const num = (k: string) => {
+    const v = String(form.get(k) ?? '').trim();
+    return v === '' ? null : Number(v);
+  };
+  const patch = {
+    name: String(form.get('name') ?? '').trim() || undefined,
+    area_m2: num('area_m2'),
+    capacity: num('capacity'),
+    equipment: String(form.get('equipment') ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+    rate_hour: String(form.get('rate_hour') ?? '').trim() || null,
+    rate_subscription: String(form.get('rate_subscription') ?? '').trim() || null,
+    description: String(form.get('description') ?? '').trim() || null,
+    photo_url: String(form.get('photo_url') ?? '').trim() || null,
+  };
+  const updated = updateHall(id!, patch);
+  if (!updated) {
+    return Astro.redirect('/admin/halls', 303);
+  }
+  return Astro.redirect('/admin/halls', 303);
+}
+
+const hall = getHall(id!);
+if (!hall) {
+  return Astro.redirect('/admin/halls', 303);
+}
+
+const user = Astro.locals.adminUser;
+---
+
+<AdminLayout title="Редактировать зал" user={user}>
+  <p><a href="/admin/halls" class="btn btn-secondary btn-sm">&larr; Назад</a></p>
+
+  <div class="form-section" style="max-width:40rem">
+    <h3>Зал: {hall.id}</h3>
+    <form method="POST">
+      <label for="edit-name">Название</label>
+      <input id="edit-name" name="name" required value={hall.name} />
+
+      <label for="edit-area_m2">Площадь, м²</label>
+      <input id="edit-area_m2" name="area_m2" type="number" value={hall.area_m2 ?? ''} />
+
+      <label for="edit-capacity">Вместимость</label>
+      <input id="edit-capacity" name="capacity" type="number" value={hall.capacity ?? ''} />
+
+      <label for="edit-equipment">Оснащение (через запятую)</label>
+      <input id="edit-equipment" name="equipment" value={hall.equipment.join(', ')} />
+
+      <label for="edit-rate_hour">Ставка, час</label>
+      <input id="edit-rate_hour" name="rate_hour" value={hall.rate_hour ?? ''} />
+
+      <label for="edit-rate_subscription">Ставка (абонемент)</label>
+      <input id="edit-rate_subscription" name="rate_subscription" value={hall.rate_subscription ?? ''} />
+
+      <label for="edit-description">Описание</label>
+      <textarea id="edit-description" name="description" rows={4}>{hall.description ?? ''}</textarea>
+
+      <label>Фото</label>
+      <div class="photo-upload" id="edit-photo-upload-hall">
+        <noscript><p class="muted">Загрузка фото требует JavaScript.</p></noscript>
+        <div class="photo-upload__ui">
+          <div class="photo-upload__preview" id="edit-hall-photo-preview" style={hall.photo_url ? '' : 'display:none'}>
+            <img
+              id="edit-hall-photo-img"
+              src={hall.photo_url ?? ''}
+              alt="Превью фото"
+              style="max-width:200px;border-radius:var(--radius-md)"
+            />
+          </div>
+          <div style="display:flex;gap:var(--space-1);align-items:center;margin-top:var(--space-1)">
+            <input type="file" id="edit-hall-file-input" accept=".jpg,.jpeg,.png,.webp" style="font-size:0.85rem" />
+            <button type="button" class="btn btn-secondary btn-sm" id="edit-hall-upload-btn">Загрузить</button>
+          </div>
+          <p id="edit-hall-upload-error" class="err" style="display:none"></p>
+        </div>
+      </div>
+      <input type="hidden" name="photo_url" id="edit-photo_url_field" value={hall.photo_url ?? ''} />
+
+      <p style="margin-top:var(--space-2)">
+        <button class="btn" type="submit">Сохранить</button>
+      </p>
+    </form>
+  </div>
+</AdminLayout>
+
+<style>
+  .photo-upload__ui { display: none; }
+</style>
+
+<script>
+  const uploadUi = document.getElementById('edit-photo-upload-hall')?.querySelector('.photo-upload__ui') as HTMLElement | null;
+  if (uploadUi) uploadUi.style.display = '';
+
+  const uploadBtn = document.getElementById('edit-hall-upload-btn');
+  uploadBtn?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('edit-hall-file-input') as HTMLInputElement;
+    const errEl = document.getElementById('edit-hall-upload-error') as HTMLElement;
+    errEl.style.display = 'none';
+    if (!fileInput.files?.[0]) return;
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    try {
+      const res = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        errEl.textContent = data.error || 'Ошибка загрузки';
+        errEl.style.display = '';
+        return;
+      }
+      (document.getElementById('edit-photo_url_field') as HTMLInputElement).value = data.url;
+      (document.getElementById('edit-hall-photo-img') as HTMLImageElement).src = data.url;
+      (document.getElementById('edit-hall-photo-preview') as HTMLElement).style.display = '';
+    } catch {
+      errEl.textContent = 'Сеть недоступна';
+      errEl.style.display = '';
+    }
+  });
+</script>
