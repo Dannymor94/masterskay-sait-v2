@@ -27,7 +27,9 @@ interface Props {
 const { item, hallName, specialistName = null, specialistSlug = null } = Astro.props;
 
 const isBooking = item.cta_type === 'booking';
-const href = isBooking ? bookingHref(item) : (item.external_url ?? '#');
+const href = isBooking
+  ? bookingHref(item, specialistSlug ?? undefined)
+  : (item.external_url ?? '#');
 ---
 
 <article class="slot">

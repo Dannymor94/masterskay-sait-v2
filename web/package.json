@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
+    "prebuild": "node scripts/gen-og.mjs",
     "build": "npm run gen:tokens && astro check && astro build",
     "preview": "astro preview",
     "astro": "astro",

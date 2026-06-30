@@ -193,7 +193,7 @@ const seed = db.transaction(() => {
   // --- Слоты ---
   // Нормальные, опубликованные (booking + external CTA).
   upsertSlot.run({
-    id: 'slot-yoga-mon', hall_id: 'big-70', specialist_id: 'demo-yoga', weekday: 1,
+    id: 'slot-yoga-mon', hall_id: 'big-70', specialist_id: 'master-todo-1', weekday: 1,
     time_start: '10:00', time_end: '11:30', title: 'Хатха-йога (демо)',
     kind: 'own', cta_type: 'booking', external_url: null,
     conflict_flag: 0, is_published: 1,

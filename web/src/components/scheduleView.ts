@@ -75,8 +75,13 @@ export function groupByWeekday<T extends { weekday: number; time_start: string }
 /**
  * Ссылка на форму визита (T2-4 создаст /zapis) с предзаполнением зала и слота.
  * Параметры в query, чтобы читались и серверно (SSR-форма визита), и без JS.
+ * Если передан masterSlug — добавляет ?master=<slug> для предзаполнения мастера.
  */
-export function bookingHref(slot: { hall_id: string; id: string }): string {
+export function bookingHref(
+  slot: { hall_id: string; id: string },
+  masterSlug?: string | null,
+): string {
   const p = new URLSearchParams({ hall: slot.hall_id, slot: slot.id });
+  if (masterSlug) p.set('master', masterSlug);
   return `/zapis?${p.toString()}`;
 }

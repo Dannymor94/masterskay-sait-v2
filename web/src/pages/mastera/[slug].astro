@@ -35,7 +35,7 @@ const hallNames = new Map(halls.map((h) => [h.id, h.name]));
 const MASTER_OVERLINE = 'Мастер студии';
 const SCHEDULE_H2 = 'Ближайшие занятия';
 const SCHEDULE_EMPTY =
-  'Пока расписание не опубликовано. Напишите нам — расскажем, когда будет следующее занятие.';
+  'Расписание скоро появится. Напишите нам — расскажем, когда будет следующее занятие.';
 const CTA_NOTE = 'Если хотите попасть на занятие — оставьте заявку, и мы свяжемся с вами.';
 
 const pageTitle = `${master.name} — Мастер «Мастерской»`;
@@ -104,6 +104,7 @@ const pageDescription = master.bio
                 item={slot as any}
                 hallName={hallNames.get(slot.hall_id) ?? slot.hall_id}
                 specialistName={master.name}
+                specialistSlug={master.slug ?? null}
               />
             </li>
           ))}
