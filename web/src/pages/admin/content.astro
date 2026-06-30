@@ -17,6 +17,7 @@ if (Astro.request.method === 'POST') {
     title: String(form.get('title') ?? '').trim(),
     body: String(form.get('body') ?? ''),
     meta_description: String(form.get('meta_description') ?? '').trim() || null,
+    hero_image: String(form.get('hero_image') ?? '').trim() || null,
   };
   const v = validateContent(input);
   if (!v.ok) error = Object.values(v.errors).join(' ');
@@ -28,11 +29,13 @@ const user = Astro.locals.adminUser;
 <AdminLayout title="Контент" user={user}>
   {error && <p class="err" role="alert">{error}</p>}
   <table>
-    <thead><tr><th>slug</th><th>Заголовок</th><th>Обновлено</th><th></th></tr></thead>
+    <thead><tr><th>slug</th><th>Заголовок</th><th>Обложка</th><th>Обновлено</th><th></th></tr></thead>
     <tbody>
       {pages.map((p) => (
         <tr>
-          <td>{p.slug}</td><td>{p.title}</td><td class="muted">{p.updated_at}</td>
+          <td>{p.slug}</td><td>{p.title}</td>
+          <td>{p.hero_image ? <img src={p.hero_image} alt="" width="48" height="36" style="object-fit:cover;border-radius:var(--radius-sm)"> : '—'}</td>
+          <td class="muted">{p.updated_at}</td>
           <td>
             <form method="POST" class="inline">
               <input type="hidden" name="_action" value="delete" />
@@ -52,7 +55,67 @@ const user = Astro.locals.adminUser;
     <label for="title">Заголовок</label><input id="title" name="title" required />
     <label for="meta_description">meta description</label><input id="meta_description" name="meta_description" />
     <label for="body">Тело (markdown)</label><textarea id="body" name="body" rows="8"></textarea>
+
+    <label>Обложка (hero_image)</label>
+    <div class="photo-upload" id="photo-upload-content">
+      <noscript><p class="muted">Загрузка фото требует JavaScript.</p></noscript>
+      <div class="photo-upload__ui">
+        <div id="content-photo-preview" style="display:none">
+          <img id="content-photo-img" src="" alt="Превью" style="max-width:200px;border-radius:var(--radius-md);margin-bottom:var(--space-1)">
+        </div>
+        <div style="display:flex;gap:var(--space-1);align-items:center">
+          <input type="file" id="content-file-input" accept=".jpg,.jpeg,.png,.webp" style="font-size:0.85rem">
+          <button type="button" class="btn btn-secondary btn-sm" id="content-upload-btn">Загрузить</button>
+        </div>
+        <p id="content-upload-error" class="err" style="display:none"></p>
+      </div>
+    </div>
+    <input type="hidden" name="hero_image" id="hero_image_field">
+
     <p><button class="btn" type="submit">Сохранить</button></p>
   </form>
   </div>
 </AdminLayout>
+
+<style>
+  .photo-upload__ui { display: none; }
+</style>
+
+<script>
+  const uploadWidget = document.getElementById('photo-upload-content');
+  if (uploadWidget) {
+    const ui = uploadWidget.querySelector('.photo-upload__ui') as HTMLElement | null;
+    if (ui) ui.style.display = '';
+  }
+
+  const uploadBtn = document.getElementById('content-upload-btn');
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', async () => {
+      const fileInput = document.getElementById('content-file-input') as HTMLInputElement | null;
+      const errEl = document.getElementById('content-upload-error') as HTMLElement | null;
+      if (!errEl) return;
+      errEl.style.display = 'none';
+      if (!fileInput?.files?.[0]) return;
+      const fd = new FormData();
+      fd.append('file', fileInput.files[0]);
+      try {
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          errEl.textContent = data.error || 'Ошибка';
+          errEl.style.display = '';
+          return;
+        }
+        const hiddenField = document.getElementById('hero_image_field') as HTMLInputElement | null;
+        const previewImg = document.getElementById('content-photo-img') as HTMLImageElement | null;
+        const previewBox = document.getElementById('content-photo-preview') as HTMLElement | null;
+        if (hiddenField) hiddenField.value = data.url;
+        if (previewImg) previewImg.src = data.url;
+        if (previewBox) previewBox.style.display = '';
+      } catch {
+        errEl.textContent = 'Сеть недоступна';
+        errEl.style.display = '';
+      }
+    });
+  }
+</script>
