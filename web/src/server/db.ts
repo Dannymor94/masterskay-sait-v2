@@ -70,7 +70,8 @@ CREATE TABLE IF NOT EXISTS hall (
   rate_subscription TEXT,
   photos            TEXT NOT NULL DEFAULT '[]',   -- JSON-массив путей. PG: jsonb
   description       TEXT,
-  sort              INTEGER NOT NULL DEFAULT 0
+  sort              INTEGER NOT NULL DEFAULT 0,
+  photo_url         TEXT                           -- single cover photo URL from upload
 );
 
 CREATE TABLE IF NOT EXISTS specialist (
@@ -167,6 +168,8 @@ function applyColumnMigrations(db: Db): void {
   ensureColumn(db, 'specialist', 'directions', "directions TEXT NOT NULL DEFAULT '[]'");
   ensureColumn(db, 'specialist', 'sort', 'sort INTEGER NOT NULL DEFAULT 0');
   ensureColumn(db, 'specialist', 'is_studio_master', 'is_studio_master INTEGER NOT NULL DEFAULT 0');
+  // 0005: hall.photo_url — single cover photo URL (T-photo-1).
+  ensureColumn(db, 'hall', 'photo_url', 'photo_url TEXT');
 }
 
 let cachedPath: string | null = null;

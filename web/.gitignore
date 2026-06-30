@@ -1,0 +1,9 @@
+dist/
+node_modules/
+.env
+.env.*
+!.env.example
+db/*.db
+db/*.db-shm
+db/*.db-wal
+public/uploads/

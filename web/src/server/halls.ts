@@ -21,6 +21,7 @@ export type HallInput = {
   photos?: string[];
   description?: string | null;
   sort?: number;
+  photo_url?: string | null;
 };
 
 export type HallRow = {
@@ -35,6 +36,7 @@ export type HallRow = {
   photos: string[];
   description: string | null;
   sort: number;
+  photo_url: string | null;
 };
 
 export type ValidationResult = { ok: boolean; errors: Record<string, string> };
@@ -65,6 +67,7 @@ function mapRow(r: any): HallRow {
     photos: JSON.parse(r.photos || '[]'),
     description: r.description,
     sort: r.sort,
+    photo_url: r.photo_url ?? null,
   };
 }
 
@@ -73,14 +76,14 @@ export function createHall(input: HallInput): HallRow {
   const db = getDb();
   db.prepare(
     `INSERT INTO hall (id, name, area_m2, capacity, equipment, rate_hour, rate_day,
-       rate_subscription, photos, description, sort)
+       rate_subscription, photos, description, sort, photo_url)
      VALUES (@id, @name, @area_m2, @capacity, @equipment, @rate_hour, @rate_day,
-       @rate_subscription, @photos, @description, @sort)
+       @rate_subscription, @photos, @description, @sort, @photo_url)
      ON CONFLICT(id) DO UPDATE SET
        name=excluded.name, area_m2=excluded.area_m2, capacity=excluded.capacity,
        equipment=excluded.equipment, rate_hour=excluded.rate_hour, rate_day=excluded.rate_day,
        rate_subscription=excluded.rate_subscription, photos=excluded.photos,
-       description=excluded.description, sort=excluded.sort`,
+       description=excluded.description, sort=excluded.sort, photo_url=excluded.photo_url`,
   ).run({
     id: s(input.id),
     name: s(input.name),
@@ -93,6 +96,7 @@ export function createHall(input: HallInput): HallRow {
     photos: JSON.stringify(input.photos ?? []),
     description: input.description ?? null,
     sort: input.sort ?? 0,
+    photo_url: input.photo_url ?? null,
   });
   return getHall(s(input.id))!;
 }
@@ -123,6 +127,7 @@ export function updateHall(id: string, patch: Partial<HallInput>): HallRow | und
     photos: patch.photos ?? cur.photos,
     description: patch.description !== undefined ? patch.description : cur.description,
     sort: patch.sort !== undefined ? patch.sort : cur.sort,
+    photo_url: patch.photo_url !== undefined ? patch.photo_url : cur.photo_url,
   };
   return createHall(merged);
 }
