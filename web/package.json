@@ -13,7 +13,8 @@
     "gen:tokens": "node scripts/gen-tokens.mjs",
     "lint": "astro check",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "serve": "node --env-file=.env dist/server/entry.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.4",
