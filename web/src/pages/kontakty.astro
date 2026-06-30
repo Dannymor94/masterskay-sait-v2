@@ -1,0 +1,255 @@
+---
+export const prerender = false;
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+---
+
+<BaseLayout
+  title="Контакты — Мастерская"
+  description="Адрес, телефон, Telegram и часы работы центра практик «Мастерская» в Ростове-на-Дону."
+>
+  <SiteHeader slot="header" />
+
+  <section class="page-hero">
+    <div class="container">
+      <h1 class="page-hero__title">Контакты</h1>
+    </div>
+  </section>
+
+  <section class="contacts-main" aria-label="Контактная информация">
+    <div class="container contacts-main__inner">
+
+      <div class="contact-block">
+        <span class="contact-block__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <path d="M10 1.5C7.1 1.5 4.75 3.85 4.75 6.75c0 4.5 5.25 11.25 5.25 11.25s5.25-6.75 5.25-11.25C15.25 3.85 12.9 1.5 10 1.5Zm0 7a2.25 2.25 0 1 1 0-4.5 2.25 2.25 0 0 1 0 4.5Z" fill="currentColor"/>
+          </svg>
+        </span>
+        <div>
+          <p class="contact-block__label">Адрес</p>
+          <p class="contact-block__value">Ростов-на-Дону, ул. Фурмановская 79/41</p>
+        </div>
+      </div>
+
+      <div class="contact-block">
+        <span class="contact-block__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <path d="M5.5 3h2.8l1.3 3.5-1.7 1a9.5 9.5 0 0 0 4.6 4.6l1-1.7 3.5 1.3v2.8C16.9 15.9 9 17.8 3.1 5.5L5.5 3Z" fill="currentColor"/>
+          </svg>
+        </span>
+        <div>
+          <p class="contact-block__label">Телефон</p>
+          <a class="contact-block__link" href="tel:+7XXXXXXXXXX">+7 (XXX) XXX-XX-XX</a>
+        </div>
+      </div>
+
+      <div class="contact-block">
+        <span class="contact-block__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <path d="M10 1.5C5.3 1.5 1.5 5.3 1.5 10c0 4.7 3.8 8.5 8.5 8.5S18.5 14.7 18.5 10 14.7 1.5 10 1.5Zm4.2 5.8-1.4 6.7c-.1.5-.4.6-.8.4l-2.2-1.6-1.1 1a.3.3 0 0 1-.3.1l.2-2.2 4.1-3.7c.2-.2 0-.3-.3-.1L5.8 12.2 3.6 11.5c-.5-.2-.5-.5.1-.7l8.3-3.2c.4-.2.8.1.7.7Z" fill="currentColor"/>
+          </svg>
+        </span>
+        <div>
+          <p class="contact-block__label">Telegram</p>
+          <a
+            class="contact-block__link"
+            href="https://t.me/masterskaya_demo"
+            target="_blank"
+            rel="noopener noreferrer"
+          >@masterskaya_demo</a>
+        </div>
+      </div>
+
+      <div class="contact-block">
+        <span class="contact-block__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <div>
+          <p class="contact-block__label">MAX</p>
+          <a class="contact-block__link contact-block__link--soon" href="#max-placeholder">
+            Скоро
+          </a>
+        </div>
+      </div>
+
+      <div class="contact-block">
+        <span class="contact-block__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M10 5.5v4.75l3 1.75" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div>
+          <p class="contact-block__label">Часы работы</p>
+          <p class="contact-block__value">Ежедневно 07:00–22:00</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="contacts-map" aria-label="Карта проезда">
+    <div class="container">
+      <a
+        class="map-link"
+        href="https://yandex.ru/maps/?rtext=~Ростов-на-Дону,Фурмановская+79/41&rtt=auto"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Открыть маршрут до Мастерской в Яндекс.Картах"
+      >
+        <div class="map-placeholder">
+          <svg class="map-placeholder__icon" width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true" focusable="false">
+            <path d="M20 4C13.4 4 8 9.4 8 16c0 9 12 20 12 20s12-11 12-20C32 9.4 26.6 4 20 4Zm0 16a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z" fill="currentColor"/>
+          </svg>
+          <span class="map-placeholder__text">Карта загружается</span>
+        </div>
+      </a>
+      <p class="map-caption">Нажмите, чтобы построить маршрут в Яндекс.Картах</p>
+    </div>
+  </section>
+
+  <SiteFooter slot="footer" />
+</BaseLayout>
+
+<style>
+  /* --- Hero --- */
+  .page-hero {
+    background: var(--surface);
+    padding-block: var(--space-4) var(--space-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 18%, transparent);
+  }
+  .page-hero__title {
+    font-family: var(--font-headings);
+    font-size: var(--text-h1);
+    font-weight: var(--weight-h1);
+    line-height: var(--leading-h1);
+    color: var(--heading);
+    margin: 0;
+  }
+
+  /* --- Contacts list --- */
+  .contacts-main {
+    padding-block: var(--space-4);
+  }
+  .contacts-main__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    max-width: 40rem;
+  }
+
+  .contact-block {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .contact-block__icon {
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-fill) 12%, transparent);
+    color: var(--heading-accent);
+    margin-top: 0.1rem;
+  }
+  .contact-block__label {
+    font-family: var(--font-overline);
+    font-size: var(--text-overline);
+    font-weight: var(--weight-overline);
+    letter-spacing: var(--tracking-overline);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 0.2rem;
+  }
+  .contact-block__value {
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    font-weight: var(--weight-body);
+    line-height: var(--leading-body);
+    color: var(--text);
+    margin: 0;
+  }
+  .contact-block__link {
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    font-weight: 600;
+    color: var(--link);
+    text-decoration: none;
+    line-height: var(--leading-body);
+  }
+  .contact-block__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .contact-block__link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+  .contact-block__link--soon {
+    color: var(--text-muted);
+    font-weight: var(--weight-body);
+    font-style: italic;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  /* --- Map section --- */
+  .contacts-map {
+    padding-block: var(--space-3) var(--space-5);
+  }
+
+  .map-link {
+    display: block;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    max-width: 56rem;
+  }
+  .map-link:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+  }
+  .map-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: clamp(12rem, 40vw, 22rem);
+    background: var(--surface);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .map-link:hover .map-placeholder {
+    background: color-mix(in srgb, var(--surface) 70%, var(--color-sand));
+    border-color: color-mix(in srgb, var(--border) 40%, transparent);
+  }
+  .map-placeholder__icon {
+    color: var(--heading-accent);
+    opacity: 0.7;
+  }
+  .map-placeholder__text {
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    color: var(--text-muted);
+  }
+
+  .map-caption {
+    margin-top: var(--space-1);
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    color: var(--text-muted);
+    max-width: 56rem;
+  }
+</style>

@@ -1,0 +1,132 @@
+---
+/**
+ * HeroSection.astro — главный герой-навигатор (index). Две карточки-двери:
+ * аренда залов (primary) и расписание (secondary). Без JS, только var()-токены,
+ * color-mix() для полупрозрачных рамок и теней.
+ */
+---
+
+<section class="hero" aria-labelledby="hero-heading">
+  <p class="hero__overline overline" aria-hidden="true">Мастерская</p>
+  <h1 class="hero__heading" id="hero-heading">Место, где можно выдохнуть</h1>
+  <p class="hero__lead lead">Пространство для практики, отдыха и живого общения.</p>
+
+  <nav class="doors-grid" aria-label="Основные разделы">
+    <!-- Карточка 1 — аренда (primary) -->
+    <a class="door door--primary" href="/arenda">
+      <div class="door__header">
+        <span class="door__title">Аренда залов</span>
+        <span class="door__arrow" aria-hidden="true">→</span>
+      </div>
+      <p class="door__sub">Ведите практику на регулярной основе</p>
+    </a>
+
+    <!-- Карточка 2 — расписание (secondary) -->
+    <a class="door door--secondary" href="/raspisanie">
+      <div class="door__header">
+        <span class="door__title">Записаться на занятие</span>
+        <span class="door__arrow" aria-hidden="true">→</span>
+      </div>
+      <p class="door__sub">Йога, медитация, телесные практики</p>
+    </a>
+  </nav>
+</section>
+
+<style>
+  .hero {
+    padding-block: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .hero__lead {
+    margin-bottom: var(--space-2);
+  }
+
+  .doors-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  @media (min-width: 48em) {
+    .doors-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .door {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    min-height: 9rem;
+    background: var(--bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--border) 22%, transparent);
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .door:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-wood-darkest) 12%, transparent);
+  }
+
+  .door:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+
+  .door:focus-visible {
+    outline: 2px solid var(--accent-fill);
+    outline-offset: 3px;
+  }
+
+  .door--primary {
+    border-top: 3px solid var(--accent-fill);
+  }
+
+  .door--secondary {
+    border-top: 3px solid color-mix(in srgb, var(--border) 45%, transparent);
+  }
+
+  .door__header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-1);
+  }
+
+  .door__title {
+    font-family: var(--font-headings);
+    font-size: var(--text-h3);
+    font-weight: var(--weight-h3);
+    line-height: var(--leading-h3);
+    color: var(--text);
+    flex: 1;
+  }
+
+  .door__arrow {
+    font-size: var(--text-h3);
+    color: var(--link);
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+
+  .door:hover .door__arrow {
+    transform: translateX(3px);
+  }
+
+  .door__sub {
+    font-family: var(--font-body);
+    font-size: var(--text-small);
+    line-height: var(--leading-small);
+    color: var(--text-muted);
+    margin: 0;
+  }
+</style>

@@ -18,6 +18,7 @@ import SiteFooter from '../components/SiteFooter.astro';
 import VisitForm from '../components/VisitForm.astro';
 import { publishedSlots } from '../server/schedule.ts';
 import { getHall } from '../server/halls.ts';
+import { getSpecialist, getSpecialistBySlug } from '../server/specialists.ts';
 
 // Служебные поля: генерим при КАЖДОМ рендере GET /zapis (до отправки).
 const idempotencyKey = crypto.randomUUID();
@@ -27,6 +28,7 @@ const formRenderedAt = new Date().toISOString();
 // ?hall= → имя зала для подписи контекста. Без JS, серверно.
 const slotId = (Astro.url.searchParams.get('slot') ?? '').trim();
 const hallId = (Astro.url.searchParams.get('hall') ?? '').trim();
+const masterSlug = (Astro.url.searchParams.get('master') ?? '').trim();
 
 let preselectDirection = '';
 let contextNote = '';
@@ -38,10 +40,25 @@ if (slotId) {
     const hall = getHall(slot.hall_id || hallId);
     const parts = [slot.title, hall?.name].filter(Boolean);
     if (parts.length) contextNote = `Вы записываетесь: ${parts.join(' · ')}`;
+    if (slot.specialist_id) {
+      const sp = getSpecialist(slot.specialist_id);
+      if (sp?.name) {
+        contextNote += (contextNote ? ' · ' : 'Вы записываетесь: ') + sp.name;
+      }
+    }
   }
 } else if (hallId) {
   const hall = getHall(hallId);
   if (hall) contextNote = `Зал: ${hall.name}`;
+}
+
+let masterNote = '';
+if (!slotId && masterSlug) {
+  const sp = getSpecialistBySlug(masterSlug);
+  if (sp) {
+    masterNote = `Вы хотите попасть к ${sp.name}`;
+    if (!contextNote) contextNote = masterNote;
+  }
 }
 
 // Flash-cookie после серверной ошибки (формат {errors, values}); читаем и гасим.
