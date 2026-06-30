@@ -53,6 +53,38 @@ export function validateUploadFile(
   return { ok: true };
 }
 
+/** Magic-byte signatures per MIME type. */
+const MAGIC: Record<string, (b: Uint8Array) => boolean> = {
+  'image/jpeg': (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/png': (b) =>
+    b.length >= 8 &&
+    b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 &&
+    b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a,
+  'image/webp': (b) =>
+    b.length >= 12 &&
+    b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && // RIFF
+    b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50, // WEBP
+};
+
+/**
+ * Verifies that the first bytes of the file match the declared MIME type.
+ * Exported for unit testing.
+ */
+export function validateMagicBytes(
+  bytes: Uint8Array,
+  mimeType: string,
+): { ok: true } | { ok: false; error: string; status: number } {
+  const check = MAGIC[mimeType];
+  if (!check || !check(bytes)) {
+    return {
+      ok: false,
+      error: 'Содержимое файла не соответствует заявленному типу.',
+      status: 415,
+    };
+  }
+  return { ok: true };
+}
+
 export function mimeToExt(mimeType: string): string {
   return ALLOWED_MIME[mimeType] ?? '.bin';
 }
@@ -92,12 +124,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+
+  const magicCheck = validateMagicBytes(bytes, file.type);
+  if (!magicCheck.ok) {
+    return new Response(JSON.stringify({ error: magicCheck.error }), {
+      status: magicCheck.status,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
   const ext = mimeToExt(file.type);
   const filename = `${randomUUID()}${ext}`;
   const uploadsDir = join(process.cwd(), 'public', 'uploads');
   mkdirSync(uploadsDir, { recursive: true });
 
-  const arrayBuffer = await file.arrayBuffer();
   writeFileSync(join(uploadsDir, filename), Buffer.from(arrayBuffer));
 
   return new Response(JSON.stringify({ url: `/uploads/${filename}` }), {
