@@ -112,11 +112,13 @@ const pageDescription = master.bio
       )}
     </section>
 
-    <!-- CTA -->
-    <section class="master-profile__cta" aria-label="Записаться на занятие">
-      <Button variant="primary" href={master.slug ? `/zapis?master=${master.slug}` : '/zapis'}>Записаться</Button>
-      <p class="master-profile__cta-note">{CTA_NOTE}</p>
-    </section>
+    <!-- CTA — только когда нет занятий; когда есть — кнопки уже в карточках -->
+    {masterSlots.length === 0 && (
+      <section class="master-profile__cta" aria-label="Записаться на занятие">
+        <Button variant="primary" href={master.slug ? `/zapis?master=${master.slug}` : '/zapis'}>Записаться</Button>
+        <p class="master-profile__cta-note">{CTA_NOTE}</p>
+      </section>
+    )}
   </article>
 
   <SiteFooter slot="footer" />
