@@ -206,7 +206,7 @@ const seed = db.transaction(() => {
   upsertSlot.run({
     id: 'slot-psy-wed', hall_id: 'small-30', specialist_id: 'master-todo-2', weekday: 3,
     time_start: '15:00', time_end: '16:00', title: 'Консультация психолога (демо)',
-    kind: 'own', cta_type: 'external', external_url: 'https://example.com/demo-psy',
+    kind: 'own', cta_type: 'external', external_url: '#demo',
     conflict_flag: 0, is_published: 1,
   });
 
@@ -216,7 +216,7 @@ const seed = db.transaction(() => {
   upsertSlot.run({
     id: 'slot-arenda-tue-evening', hall_id: 'big-70', specialist_id: 'master-todo-3', weekday: 2,
     time_start: '18:00', time_end: '20:00', title: 'Аренда: вечерний блок (демо)',
-    kind: 'arenda', cta_type: 'external', external_url: 'https://example.com/demo-arenda',
+    kind: 'arenda', cta_type: 'external', external_url: '#demo',
     conflict_flag: 0, is_published: 1,
   });
   upsertSlot.run({

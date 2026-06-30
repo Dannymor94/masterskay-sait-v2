@@ -27,9 +27,11 @@ interface Props {
 const { item, hallName, specialistName = null, specialistSlug = null } = Astro.props;
 
 const isBooking = item.cta_type === 'booking';
+const externalUrl = !isBooking ? (item.external_url ?? null) : null;
 const href = isBooking
   ? bookingHref(item, specialistSlug ?? undefined)
-  : (item.external_url ?? '#');
+  : (externalUrl ?? '#');
+const externalDisabled = !isBooking && !externalUrl;
 ---
 
 <article class="slot">
@@ -58,6 +60,11 @@ const href = isBooking
         <Button variant="primary" href={href}>
           Записаться
         </Button>
+      ) : externalDisabled ? (
+        <span class="slot__cta-disabled" aria-label="Ссылка на специалиста будет добавлена">
+          К специалисту
+          <span class="slot__cta-note">(ссылка будет добавлена)</span>
+        </span>
       ) : (
         <Button
           variant="secondary"
@@ -138,6 +145,20 @@ const href = isBooking
 
   .slot__cta {
     margin-top: var(--space-1);
+  }
+
+  .slot__cta-disabled {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    color: var(--text-muted);
+    font-size: var(--text-small);
+    cursor: default;
+  }
+  .slot__cta-note {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    opacity: 0.7;
   }
 
   /* На десктопе — время | контент | CTA в одну строку. */

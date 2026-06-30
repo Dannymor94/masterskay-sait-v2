@@ -1,0 +1,120 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getSlot, updateSlot, validateSlot, type SlotKind, type CtaType } from '../../../../server/slots.ts';
+import { listHalls } from '../../../../server/halls.ts';
+import { listSpecialists } from '../../../../server/specialists.ts';
+import { detectConflicts } from '../../../../server/schedule.ts';
+
+if (!Astro.locals.adminUser) {
+  return Astro.redirect('/admin/login', 303);
+}
+
+const { id } = Astro.params as { id: string };
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const input = {
+    id,
+    hall_id: String(form.get('hall_id') ?? '').trim(),
+    specialist_id: String(form.get('specialist_id') ?? '').trim() || null,
+    weekday: Number(form.get('weekday') ?? 0),
+    time_start: String(form.get('time_start') ?? '').trim(),
+    time_end: String(form.get('time_end') ?? '').trim(),
+    title: String(form.get('title') ?? '').trim() || null,
+    kind: (String(form.get('kind') ?? 'own').trim() || 'own') as SlotKind,
+    cta_type: String(form.get('cta_type') ?? '').trim() as CtaType,
+    external_url: String(form.get('external_url') ?? '').trim() || null,
+  };
+  const v = validateSlot(input);
+  if (!v.ok) {
+    error = Object.values(v.errors).join(' ');
+  } else {
+    updateSlot(id, input);
+    detectConflicts();
+    return Astro.redirect('/admin/slots', 303);
+  }
+}
+
+const slot = getSlot(id);
+if (!slot) {
+  return Astro.redirect('/admin/slots', 303);
+}
+
+const halls = listHalls();
+const specialists = listSpecialists();
+const user = Astro.locals.adminUser;
+const WD = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+---
+
+<AdminLayout title="Редактировать слот" user={user}>
+  <p><a href="/admin/slots" class="btn btn-secondary btn-sm">&larr; Назад</a></p>
+  {error && <p class="err" role="alert">{error}</p>}
+
+  <div class="form-section" style="max-width:40rem">
+    <h3>Слот: {slot.id}</h3>
+    <form method="POST">
+      <label for="edit-hall_id">Зал</label>
+      <select id="edit-hall_id" name="hall_id" required>
+        {halls.map((h) => (
+          <option value={h.id} selected={h.id === slot.hall_id}>{h.name}</option>
+        ))}
+      </select>
+
+      <label for="edit-specialist_id">Специалист (необязательно)</label>
+      <select id="edit-specialist_id" name="specialist_id">
+        <option value="" selected={!slot.specialist_id}>—</option>
+        {specialists.map((sp) => (
+          <option value={sp.id} selected={sp.id === slot.specialist_id}>{sp.name}</option>
+        ))}
+      </select>
+
+      <label for="edit-weekday">День недели (1=Пн … 7=Вс)</label>
+      <input id="edit-weekday" name="weekday" type="number" min="1" max="7" required value={slot.weekday} />
+
+      <label for="edit-time_start">Начало (ЧЧ:ММ)</label>
+      <input id="edit-time_start" name="time_start" required value={slot.time_start} />
+
+      <label for="edit-time_end">Окончание (ЧЧ:ММ)</label>
+      <input id="edit-time_end" name="time_end" required value={slot.time_end} />
+
+      <label for="edit-title">Заголовок</label>
+      <input id="edit-title" name="title" value={slot.title ?? ''} />
+
+      <label for="edit-kind">Тип</label>
+      <select id="edit-kind" name="kind">
+        <option value="own" selected={slot.kind === 'own'}>own (своё)</option>
+        <option value="arenda" selected={slot.kind === 'arenda'}>arenda (аренда)</option>
+      </select>
+
+      <label for="edit-cta_type">CTA</label>
+      <select id="edit-cta_type" name="cta_type">
+        <option value="booking" selected={slot.cta_type === 'booking'}>booking (запись)</option>
+        <option value="external" selected={slot.cta_type === 'external'}>external (внешняя)</option>
+      </select>
+
+      <div id="edit-external-url-row">
+        <label for="edit-external_url">Ссылка на специалиста (для external)</label>
+        <input id="edit-external_url" name="external_url" type="url" placeholder="https://..." value={slot.external_url ?? ''} />
+      </div>
+
+      <p style="margin-top:var(--space-2)">
+        <button class="btn" type="submit">Сохранить</button>
+      </p>
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+  const ctaSelect = document.getElementById('edit-cta_type') as HTMLSelectElement | null;
+  const extRow = document.getElementById('edit-external-url-row') as HTMLElement | null;
+  function syncExtUrl() {
+    if (!ctaSelect || !extRow) return;
+    extRow.style.display = ctaSelect.value === 'external' ? '' : 'none';
+  }
+  if (ctaSelect && extRow) {
+    syncExtUrl();
+    ctaSelect.addEventListener('change', syncExtUrl);
+  }
+</script>

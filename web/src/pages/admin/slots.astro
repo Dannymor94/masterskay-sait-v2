@@ -115,6 +115,7 @@ const user = Astro.locals.adminUser;
             {s.is_published === 1 ? <span class="tag tag-pub">опубл.</span> : <span class="tag">черновик</span>}
           </td>
           <td>
+            <a href={`/admin/slots/edit/${s.id}`} class="btn btn-secondary btn-sm">Редактировать</a>
             {s.is_published === 1 ? (
               <form method="POST" class="inline">
                 <input type="hidden" name="_action" value="unpublish" />
@@ -161,8 +162,24 @@ const user = Astro.locals.adminUser;
     <select id="kind" name="kind"><option value="own">own (своё)</option><option value="arenda">arenda (аренда)</option></select>
     <label for="cta_type">CTA</label>
     <select id="cta_type" name="cta_type"><option value="booking">booking (запись)</option><option value="external">external (внешняя)</option></select>
-    <label for="external_url">external_url (для external)</label><input id="external_url" name="external_url" type="url" />
+    <div id="external-url-row">
+      <label for="external_url">Ссылка (для external CTA)</label>
+      <input id="external_url" name="external_url" type="url" placeholder="https://..." />
+    </div>
     <p><button class="btn" type="submit">Сохранить</button></p>
   </form>
   </div>
 </AdminLayout>
+
+<script>
+  const ctaSelect = document.getElementById('cta_type') as HTMLSelectElement | null;
+  const extRow = document.getElementById('external-url-row') as HTMLElement | null;
+  function syncExtUrl() {
+    if (!ctaSelect || !extRow) return;
+    extRow.style.display = ctaSelect.value === 'external' ? '' : 'none';
+  }
+  if (ctaSelect && extRow) {
+    syncExtUrl();
+    ctaSelect.addEventListener('change', syncExtUrl);
+  }
+</script>
