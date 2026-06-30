@@ -189,6 +189,11 @@ const seed = db.transaction(() => {
     bio: null, photo: null, external_url: null, is_resident: 1,
     photo_slot: 'master-2', directions: JSON.stringify(['TODO направление']), sort: 2, is_studio_master: 1,
   });
+  upsertSpec.run({
+    id: 'master-todo-3', name: 'TODO Имя мастера 3', slug: 'master-todo-3', kind: 'массаж',
+    bio: null, photo: null, external_url: null, is_resident: 1,
+    photo_slot: 'master-3', directions: JSON.stringify(['TODO направление']), sort: 3, is_studio_master: 1,
+  });
 
   // --- Слоты ---
   // Нормальные, опубликованные (booking + external CTA).
@@ -199,7 +204,7 @@ const seed = db.transaction(() => {
     conflict_flag: 0, is_published: 1,
   });
   upsertSlot.run({
-    id: 'slot-psy-wed', hall_id: 'small-30', specialist_id: 'demo-psy', weekday: 3,
+    id: 'slot-psy-wed', hall_id: 'small-30', specialist_id: 'master-todo-2', weekday: 3,
     time_start: '15:00', time_end: '16:00', title: 'Консультация психолога (демо)',
     kind: 'own', cta_type: 'external', external_url: 'https://example.com/demo-psy',
     conflict_flag: 0, is_published: 1,
@@ -209,13 +214,13 @@ const seed = db.transaction(() => {
   // аренда 18:00–20:00 пересекается со «своим занятием» 19:00–21:00.
   // detectConflicts() пометит own-слот conflict_flag=1, is_published=0.
   upsertSlot.run({
-    id: 'slot-arenda-tue-evening', hall_id: 'big-70', specialist_id: 'demo-massage', weekday: 2,
+    id: 'slot-arenda-tue-evening', hall_id: 'big-70', specialist_id: 'master-todo-3', weekday: 2,
     time_start: '18:00', time_end: '20:00', title: 'Аренда: вечерний блок (демо)',
     kind: 'arenda', cta_type: 'external', external_url: 'https://example.com/demo-arenda',
     conflict_flag: 0, is_published: 1,
   });
   upsertSlot.run({
-    id: 'slot-own-tue-evening', hall_id: 'big-70', specialist_id: 'demo-yoga', weekday: 2,
+    id: 'slot-own-tue-evening', hall_id: 'big-70', specialist_id: 'master-todo-2', weekday: 2,
     time_start: '19:00', time_end: '21:00', title: 'Своё занятие: вечерняя йога (демо)',
     kind: 'own', cta_type: 'booking', external_url: null,
     conflict_flag: 0, is_published: 1, // detectConflicts снимет публикацию
