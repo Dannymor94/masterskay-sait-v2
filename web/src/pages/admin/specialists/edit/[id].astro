@@ -56,30 +56,23 @@ const user = Astro.locals.adminUser;
       <label for="edit-bio">Био</label>
       <textarea id="edit-bio" name="bio" rows="4">{specialist.bio ?? ''}</textarea>
 
-      <label for="edit-photo-url">Фото — ссылка</label>
-      <input id="edit-photo-url" name="photo" type="text" placeholder="https://... или /uploads/..." value={specialist.photo ?? ''} />
-
-      <label>Фото — загрузить файл</label>
-      <div class="photo-upload" id="sp-photo-upload">
-        <noscript><p class="muted">Загрузка файла требует JavaScript.</p></noscript>
-        {specialist.photo && (
-          <img
-            src={specialist.photo}
-            alt="Текущее фото"
-            style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)"
-          />
-        )}
-        <div class="photo-upload__ui">
-          <div id="sp-photo-preview" style="display:none">
-            <img id="sp-photo-img" src="" alt="Превью" style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)" />
-          </div>
-          <div style="display:flex;gap:var(--space-1);align-items:center;margin-top:var(--space-1)">
-            <input type="file" id="sp-file-input" accept=".jpg,.jpeg,.png,.webp" style="font-size:0.85rem" />
-            <button type="button" class="btn btn-secondary btn-sm" id="sp-upload-btn">Загрузить</button>
-          </div>
-          <p id="sp-upload-error" class="err" style="display:none"></p>
-        </div>
+      <label for="edit-photo-url">Фото</label>
+      {specialist.photo && (
+        <img
+          src={specialist.photo}
+          alt="Текущее фото"
+          style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)"
+        />
+      )}
+      <div id="sp-photo-preview" style="display:none">
+        <img id="sp-photo-img" src="" alt="Превью" style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)" />
       </div>
+      <div style="display:flex;gap:var(--space-1);align-items:center">
+        <input id="edit-photo-url" name="photo" type="text" placeholder="https://... или /uploads/..." value={specialist.photo ?? ''} style="flex:1" />
+        <input type="file" id="sp-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none" />
+        <button type="button" class="btn btn-secondary btn-sm" id="sp-upload-btn">Файл</button>
+      </div>
+      <p id="sp-upload-error" class="err" style="display:none"></p>
 
       <label>
         <input
@@ -99,21 +92,16 @@ const user = Astro.locals.adminUser;
   </div>
 </AdminLayout>
 
-<style>
-  .photo-upload__ui { display: none; }
-</style>
-
 <script>
-  const uploadUi = document.getElementById('sp-photo-upload')?.querySelector('.photo-upload__ui') as HTMLElement | null;
-  if (uploadUi) uploadUi.style.display = '';
+  const spFileInput = document.getElementById('sp-file-input') as HTMLInputElement;
+  document.getElementById('sp-upload-btn')?.addEventListener('click', () => spFileInput?.click());
 
-  document.getElementById('sp-upload-btn')?.addEventListener('click', async () => {
-    const fileInput = document.getElementById('sp-file-input') as HTMLInputElement;
+  spFileInput?.addEventListener('change', async () => {
+    if (!spFileInput.files?.[0]) return;
     const errEl = document.getElementById('sp-upload-error') as HTMLElement;
     errEl.style.display = 'none';
-    if (!fileInput.files?.[0]) return;
     const fd = new FormData();
-    fd.append('file', fileInput.files[0]);
+    fd.append('file', spFileInput.files[0]);
     try {
       const res = await fetch('/admin/api/upload', { method: 'POST', body: fd });
       const data = await res.json();

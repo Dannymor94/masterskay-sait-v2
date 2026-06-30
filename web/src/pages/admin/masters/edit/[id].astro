@@ -67,51 +67,30 @@ const user = Astro.locals.adminUser;
       <label for="edit_photo_slot">photo_slot (плейсхолдер)</label>
       <input id="edit_photo_slot" name="photo_slot" value={master.photo_slot ?? ''} />
 
-      <label for="edit_photo_url_input">Фото — ссылка</label>
-      <input
-        id="edit_photo_url_input"
-        type="text"
-        placeholder="https://... или /uploads/..."
-        value={master.photo ?? ''}
-        oninput="document.getElementById('edit_photo_field').value = this.value"
-      />
-
-      <label>Фото — загрузить файл</label>
-      <div class="photo-upload" id="edit-photo-upload">
-        <noscript><p class="muted">Загрузка фото требует JavaScript.</p></noscript>
-        {master.photo && (
-          <div class="edit-photo-current">
-            <img
-              src={master.photo}
-              alt="Текущее фото мастера"
-              style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)"
-            />
-          </div>
-        )}
-        <div class="photo-upload__ui">
-          <div class="photo-upload__preview" id="edit-master-photo-preview" style="display:none">
-            <img
-              id="edit-master-photo-img"
-              src=""
-              alt="Превью нового фото"
-              style="max-width:200px;border-radius:var(--radius-md)"
-            />
-          </div>
-          <div style="display:flex;gap:var(--space-1);align-items:center;margin-top:var(--space-1)">
-            <input
-              type="file"
-              id="edit-master-file-input"
-              accept=".jpg,.jpeg,.png,.webp"
-              style="font-size:0.85rem"
-            />
-            <button type="button" class="btn btn-secondary btn-sm" id="edit-master-upload-btn">
-              Загрузить
-            </button>
-          </div>
-          <p id="edit-master-upload-error" class="err" style="display:none"></p>
-        </div>
+      <label for="edit_photo_url_input">Фото</label>
+      {master.photo && (
+        <img
+          src={master.photo}
+          alt="Текущее фото мастера"
+          style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)"
+        />
+      )}
+      <div id="edit-master-photo-preview" style="display:none">
+        <img id="edit-master-photo-img" src="" alt="Превью" style="max-width:200px;border-radius:var(--radius-md);display:block;margin-bottom:var(--space-1)" />
       </div>
-      <input type="hidden" name="photo" id="edit_photo_field" value={master.photo ?? ''} />
+      <div style="display:flex;gap:var(--space-1);align-items:center">
+        <input
+          id="edit_photo_url_input"
+          name="photo"
+          type="text"
+          placeholder="https://... или /uploads/..."
+          value={master.photo ?? ''}
+          style="flex:1"
+        />
+        <input type="file" id="edit-master-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none" />
+        <button type="button" class="btn btn-secondary btn-sm" id="edit-master-upload-btn">Файл</button>
+      </div>
+      <p id="edit-master-upload-error" class="err" style="display:none"></p>
 
       <label for="edit_sort">Порядок (sort)</label>
       <input id="edit_sort" name="sort" type="number" value={master.sort} />
@@ -134,19 +113,14 @@ const user = Astro.locals.adminUser;
   </div>
 </AdminLayout>
 
-<style>
-  .photo-upload__ui { display: none; }
-</style>
-
 <script>
-  const uploadUi = document.getElementById('edit-photo-upload')?.querySelector('.photo-upload__ui') as HTMLElement | null;
-  if (uploadUi) uploadUi.style.display = '';
+  const fileInput = document.getElementById('edit-master-file-input') as HTMLInputElement;
+  document.getElementById('edit-master-upload-btn')?.addEventListener('click', () => fileInput?.click());
 
-  document.getElementById('edit-master-upload-btn')?.addEventListener('click', async () => {
-    const fileInput = document.getElementById('edit-master-file-input') as HTMLInputElement;
+  fileInput?.addEventListener('change', async () => {
+    if (!fileInput.files?.[0]) return;
     const errEl = document.getElementById('edit-master-upload-error') as HTMLElement;
     errEl.style.display = 'none';
-    if (!fileInput.files?.[0]) return;
     const fd = new FormData();
     fd.append('file', fileInput.files[0]);
     try {
@@ -157,7 +131,6 @@ const user = Astro.locals.adminUser;
         errEl.style.display = '';
         return;
       }
-      (document.getElementById('edit_photo_field') as HTMLInputElement).value = data.url;
       (document.getElementById('edit_photo_url_input') as HTMLInputElement).value = data.url;
       (document.getElementById('edit-master-photo-img') as HTMLImageElement).src = data.url;
       (document.getElementById('edit-master-photo-preview') as HTMLElement).style.display = '';
